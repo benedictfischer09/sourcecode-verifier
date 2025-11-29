@@ -22,15 +22,28 @@ module SourcecodeVerifier
       # Create reports/html directory
       reports_dir = File.join(Dir.pwd, 'reports', 'html')
       FileUtils.mkdir_p(reports_dir)
-      
+
       timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
       filename = File.join(reports_dir, "sourcecode_verification_report_#{timestamp}.html")
-      
+
       File.write(filename, generate_html)
+      open_in_browser(filename) if $stdout.isatty
       filename
     end
 
     private
+
+    def open_in_browser(path)
+        begin
+            case RbConfig::CONFIG['host_os']
+            when /darwin/  then system('open', path)   # macOS
+            when /linux/   then system('xdg-open', path)
+            when /mingw|mswin/ then system('start', path) # Windows
+            end
+        rescue StandardError
+            # Do nothing if it fails
+        end
+    end
 
     def generate_html
       erb_template = ERB.new(html_template, trim_mode: '-')
@@ -58,9 +71,9 @@ module SourcecodeVerifier
                 .gem-card.differences { border-left-color: #dc3545; }
                 .gem-card.source_not_found { border-left-color: #ffc107; }
                 .gem-card.errored { border-left-color: #6c757d; }
-                .diff-content { 
-                    max-height: 500px; 
-                    overflow-y: auto; 
+                .diff-content {
+                    max-height: 500px;
+                    overflow-y: auto;
                     font-family: 'Courier New', monospace;
                     font-size: 12px;
                     background-color: #f8f9fa;
@@ -130,7 +143,7 @@ module SourcecodeVerifier
                                                     <div class="col-md-6">
                                                         <h6 class="card-title mb-1">
                                                             <i class="<%= status_icon(result[:status]) %> status-<%= result[:status] %>"></i>
-                                                            <%= result[:gem_name] %> 
+                                                            <%= result[:gem_name] %>
                                                             <span class="badge bg-secondary"><%= result[:version] %></span>
                                                         </h6>
                                                         <small class="text-muted">
@@ -140,13 +153,13 @@ module SourcecodeVerifier
                                                     </div>
                                                     <div class="col-md-6 text-md-end">
                                                         <% if result[:status] == 'differences' && result[:diff_content] %>
-                                                            <button class="btn btn-sm btn-outline-primary collapse-toggle" 
+                                                            <button class="btn btn-sm btn-outline-primary collapse-toggle"
                                                                     onclick="toggleDiff('diff-<%= index %>')">
                                                                 <i class="fas fa-code"></i> View Diff
                                                             </button>
                                                         <% end %>
                                                         <% if result[:error] %>
-                                                            <button class="btn btn-sm btn-outline-secondary collapse-toggle" 
+                                                            <button class="btn btn-sm btn-outline-secondary collapse-toggle"
                                                                     onclick="toggleError('error-<%= index %>')">
                                                                 <i class="fas fa-exclamation-triangle"></i> Error Details
                                                             </button>
@@ -192,7 +205,7 @@ module SourcecodeVerifier
                 function toggleDiff(id) {
                     const element = document.getElementById(id);
                     const button = event.target.closest('button');
-                    
+
                     if (element.classList.contains('show')) {
                         element.classList.remove('show');
                         button.innerHTML = '<i class="fas fa-code"></i> View Diff';
@@ -206,7 +219,7 @@ module SourcecodeVerifier
                 function toggleError(id) {
                     const element = document.getElementById(id);
                     const button = event.target.closest('button');
-                    
+
                     if (element.classList.contains('show')) {
                         element.classList.remove('show');
                         button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error Details';
@@ -219,11 +232,11 @@ module SourcecodeVerifier
                 function filterGems(status) {
                     const cards = document.querySelectorAll('.gem-card');
                     const buttons = document.querySelectorAll('.filter-buttons .btn');
-                    
+
                     // Update button states
                     buttons.forEach(btn => btn.classList.remove('active'));
                     event.target.classList.add('active');
-                    
+
                     // Show/hide cards
                     cards.forEach(card => {
                         if (status === 'all' || card.dataset.status === status) {
