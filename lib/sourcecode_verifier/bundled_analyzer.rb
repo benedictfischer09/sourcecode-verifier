@@ -11,37 +11,39 @@ module SourcecodeVerifier
 
     def analyze_all
       gems = get_bundled_gems
-      puts "Found #{gems.size} gems to analyze..."
+      puts "Found #{Colorizer.highlight(gems.size)} gems to analyze..."
       SourcecodeVerifier.logger.info "Starting bundled analysis of #{gems.size} gems"
 
       gems.each_with_index do |(gem_name, version), index|
-        puts "Analyzing #{gem_name} #{version} (#{index + 1}/#{gems.size})..."
+        progress_indicator = Colorizer.highlight("(#{index + 1}/#{gems.size})")
+        puts "#{Colorizer.info('Analyzing')} #{gem_name} #{version} #{progress_indicator}..."
         SourcecodeVerifier.logger.debug "Processing gem #{index + 1}/#{gems.size}: #{gem_name} #{version}"
         
         result = analyze_gem(gem_name, version)
         @results << result
         
-        # Print progress
-        status_symbol = case result[:status]
-        when 'matching' then '✓'
-        when 'differences' then '⚠'
-        when 'source_not_found' then '?'
-        when 'errored' then '✗'
-        else '·'
-        end
+        # Print colorized progress
+        status_symbol = Colorizer.status_symbol(result[:status])
+        status_text = colorize_status_text(result[:status])
         
-        puts "#{status_symbol} #{gem_name} #{version} - #{result[:status]}"
+        puts "#{status_symbol} #{gem_name} #{version} - #{status_text}"
       end
 
       generate_reports if options[:html]
       
       # Summary
-      puts "\n=== Summary ==="
-      puts "Total gems: #{@results.size}"
-      puts "Matching: #{@results.count { |r| r[:status] == 'matching' }}"
-      puts "Differences detected: #{@results.count { |r| r[:status] == 'differences' }}"
-      puts "Source not found: #{@results.count { |r| r[:status] == 'source_not_found' }}"
-      puts "Errored: #{@results.count { |r| r[:status] == 'errored' }}"
+      puts "\n#{Colorizer.bold('=== Summary ===')}"
+      puts "Total gems: #{Colorizer.highlight(@results.size)}"
+      
+      matching_count = @results.count { |r| r[:status] == 'matching' }
+      differences_count = @results.count { |r| r[:status] == 'differences' }
+      source_not_found_count = @results.count { |r| r[:status] == 'source_not_found' }
+      errored_count = @results.count { |r| r[:status] == 'errored' }
+      
+      puts "#{Colorizer.success('✓')} Matching: #{Colorizer.success(matching_count)}" if matching_count > 0
+      puts "#{Colorizer.error('⚠')} Differences detected: #{Colorizer.error(differences_count)}" if differences_count > 0
+      puts "#{Colorizer.warning('?')} Source not found: #{Colorizer.warning(source_not_found_count)}" if source_not_found_count > 0
+      puts "#{Colorizer.error('✗')} Errored: #{Colorizer.error(errored_count)}" if errored_count > 0
       
       # Exit with error if any critical issues found
       exit_code = @results.any? { |r| r[:status] == 'differences' } ? 1 : 0
@@ -141,7 +143,7 @@ module SourcecodeVerifier
     end
 
     def generate_reports
-      puts "\nGenerating HTML report..."
+      puts "\n#{Colorizer.info('Generating HTML report...')}"
       SourcecodeVerifier.logger.info "Generating HTML report for #{@results.size} gems"
       
       html_generator = HtmlReportGenerator.new(@results, options)
@@ -187,6 +189,21 @@ module SourcecodeVerifier
       
       puts "ZIP report generated: #{zip_filename}"
       puts "Extract and open index.html in a browser to view the report."
+    end
+
+    def colorize_status_text(status)
+      case status
+      when 'matching'
+        Colorizer.success('matching')
+      when 'differences'
+        Colorizer.error('differences')
+      when 'source_not_found'
+        Colorizer.warning('source_not_found')
+      when 'errored'
+        Colorizer.error('errored')
+      else
+        Colorizer.gray(status)
+      end
     end
   end
 end

@@ -3,6 +3,14 @@
 require_relative '../lib/sourcecode_verifier'
 require 'optparse'
 
+def colorize_report_summary(report)
+  if report.identical?
+    "#{SourcecodeVerifier::Colorizer.success('✓')} #{report.gem_name} #{report.version} - #{SourcecodeVerifier::Colorizer.success('matching')}"
+  else
+    "#{SourcecodeVerifier::Colorizer.error('⚠')} #{report.gem_name} #{report.version} - #{SourcecodeVerifier::Colorizer.error('differences found')}"
+  end
+end
+
 def show_usage
   puts "Usage: sourcecode-verifier [options] <gem_name> <version>"
   puts "       sourcecode-verifier --bundled [options]"
@@ -16,6 +24,7 @@ def show_usage
   puts "      --zip                Create ZIP file for CI (implies --html)"
   puts "  -v, --verbose            Verbose output (sets log level to DEBUG)"
   puts "  -l, --log-level LEVEL    Set log level (debug, info, warn, error)"
+  puts "      --no-color           Disable colored output"
   puts "  -h, --help               Show this help"
   puts ""
   puts "Examples:"
@@ -73,14 +82,19 @@ OptionParser.new do |opts|
     options[:log_level] = level
   end
 
+  opts.on("--no-color", "Disable colored output") do
+    options[:no_color] = true
+  end
+
   opts.on("-h", "--help", "Show this help") do
     show_usage
     exit
   end
 end.parse!
 
-# Configure logging level
+# Configure logging level and colors
 SourcecodeVerifier.set_log_level(options[:log_level])
+SourcecodeVerifier::Colorizer.enabled = !options[:no_color]
 
 if options[:bundled]
   # Bundled mode - analyze all gems
@@ -110,10 +124,11 @@ else
   version = ARGV[1]
 
   begin
-    puts "Verifying #{gem_name} version #{version}..."
+    puts "#{SourcecodeVerifier::Colorizer.info('Verifying')} #{gem_name} version #{version}..."
     
     report = SourcecodeVerifier.verify(gem_name, version, options)
     
+    puts colorize_report_summary(report)
     puts report.to_s
     
     if options[:verbose]

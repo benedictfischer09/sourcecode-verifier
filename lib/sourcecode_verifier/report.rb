@@ -69,31 +69,37 @@ module SourcecodeVerifier
       output = []
       
       if gem_name && version
-        output << "=== Sourcecode Verification Report ==="
-        output << "Gem: #{gem_name} (#{version})"
-        output << "Timestamp: #{timestamp}"
+        output << SourcecodeVerifier::Colorizer.bold("=== Sourcecode Verification Report ===")
+        output << "Gem: #{SourcecodeVerifier::Colorizer.highlight(gem_name)} (#{SourcecodeVerifier::Colorizer.highlight(version)})"
+        output << "Timestamp: #{SourcecodeVerifier::Colorizer.gray(timestamp.to_s)}"
         output << ""
       end
       
-      output << summary
+      # Colorize the summary based on result
+      colorized_summary = if identical?
+        SourcecodeVerifier::Colorizer.success(summary)
+      else
+        SourcecodeVerifier::Colorizer.error(summary)
+      end
+      output << colorized_summary
       output << ""
       
       unless identical?
         if gem_only_files.any?
-          output << "Files only in gem (#{gem_only_files.size}):"
-          gem_only_files.each { |file| output << "  + #{file}" }
+          output << "#{SourcecodeVerifier::Colorizer.warning('Files only in gem')} (#{SourcecodeVerifier::Colorizer.highlight(gem_only_files.size)}):"
+          gem_only_files.each { |file| output << "  #{SourcecodeVerifier::Colorizer.success('+')} #{file}" }
           output << ""
         end
         
         if source_only_files.any?
-          output << "Files only in source (#{source_only_files.size}):"
-          source_only_files.each { |file| output << "  - #{file}" }
+          output << "#{SourcecodeVerifier::Colorizer.warning('Files only in source')} (#{SourcecodeVerifier::Colorizer.highlight(source_only_files.size)}):"
+          source_only_files.each { |file| output << "  #{SourcecodeVerifier::Colorizer.error('-')} #{file}" }
           output << ""
         end
         
         if modified_files.any?
-          output << "Modified files (#{modified_files.size}):"
-          modified_files.each { |file| output << "  ~ #{file}" }
+          output << "#{SourcecodeVerifier::Colorizer.warning('Modified files')} (#{SourcecodeVerifier::Colorizer.highlight(modified_files.size)}):"
+          modified_files.each { |file| output << "  #{SourcecodeVerifier::Colorizer.yellow('~')} #{file}" }
           output << ""
         end
         

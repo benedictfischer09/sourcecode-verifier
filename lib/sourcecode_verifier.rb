@@ -1,5 +1,6 @@
 require 'logger'
 require_relative "sourcecode_verifier/version"
+require_relative "sourcecode_verifier/colorizer"
 require_relative "sourcecode_verifier/file_filter"
 require_relative "sourcecode_verifier/verifier"
 require_relative "sourcecode_verifier/gem_downloader"
@@ -18,7 +19,15 @@ module SourcecodeVerifier
       logger = Logger.new(STDERR)
       logger.level = Logger::INFO
       logger.formatter = proc do |severity, datetime, progname, msg|
-        "[#{datetime.strftime('%Y-%m-%d %H:%M:%S')}] #{severity}: #{msg}\n"
+        timestamp = "[#{datetime.strftime('%Y-%m-%d %H:%M:%S')}]"
+        colored_severity = case severity
+        when 'DEBUG' then Colorizer.gray(severity)
+        when 'INFO' then Colorizer.blue(severity)
+        when 'WARN' then Colorizer.yellow(severity)
+        when 'ERROR' then Colorizer.red(severity)
+        else severity
+        end
+        "#{Colorizer.gray(timestamp)} #{colored_severity}: #{msg}\n"
       end
       logger
     end
