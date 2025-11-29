@@ -15,20 +15,21 @@ module SourcecodeVerifier
     def compare
       # Create clean temporary directories with only the files we want to compare
       Dir.mktmpdir("sourcecode_verifier_clean_compare") do |temp_dir|
-        clean_gem_dir = File.join(temp_dir, 'gem')
-        clean_source_dir = File.join(temp_dir, 'source')
+        @clean_gem_dir = File.join(temp_dir, 'gem')
+        @clean_source_dir = File.join(temp_dir, 'source')
         
-        copy_filtered_files(gem_dir, clean_gem_dir, :gem)
-        copy_filtered_files(source_dir, clean_source_dir, :source)
+        copy_filtered_files(gem_dir, @clean_gem_dir, :gem)
+        copy_filtered_files(source_dir, @clean_source_dir, :source)
         
-        prepare_directories_for_comparison(clean_gem_dir, clean_source_dir)
-        generate_git_diff(clean_gem_dir, clean_source_dir)
+        prepare_directories_for_comparison(@clean_gem_dir, @clean_source_dir)
+        generate_git_diff(@clean_gem_dir, @clean_source_dir)
+        
         
         {
           identical: diff_file_empty?,
           diff_file: @diff_file,
-          gem_only_files: files_only_in_gem,
-          source_only_files: files_only_in_source,
+          gem_only_files: files_only_in_clean_gem,
+          source_only_files: files_only_in_clean_source,
           modified_files: get_modified_files,
           summary: generate_summary
         }
@@ -59,6 +60,13 @@ module SourcecodeVerifier
       if options && options[:verbose] && options[:debug]
         files = Dir.glob(File.join(target_dir, '**/*')).select { |f| File.file?(f) }.map { |f| f.sub(target_dir + '/', '') }
         puts "Copied #{type} files: #{files}"
+      end
+    end
+
+    def debug_file_differences
+      if options && options[:verbose]
+        puts "Files only in clean gem: #{files_only_in_clean_gem}"
+        puts "Files only in clean source: #{files_only_in_clean_source}" 
       end
     end
 
@@ -132,6 +140,20 @@ module SourcecodeVerifier
       source_files - gem_files
     end
 
+    def files_only_in_clean_gem
+      return [] unless @clean_gem_dir && @clean_source_dir
+      gem_files = get_clean_file_paths(@clean_gem_dir)
+      source_files = get_clean_file_paths(@clean_source_dir)
+      gem_files - source_files
+    end
+
+    def files_only_in_clean_source
+      return [] unless @clean_gem_dir && @clean_source_dir
+      gem_files = get_clean_file_paths(@clean_gem_dir)
+      source_files = get_clean_file_paths(@clean_source_dir)
+      source_files - gem_files
+    end
+
     def get_modified_files
       return [] unless File.exist?(@diff_file)
       
@@ -175,17 +197,31 @@ module SourcecodeVerifier
       end
     end
 
+    def get_clean_file_paths(dir)
+      return [] unless Dir.exist?(dir)
+      
+      Dir.chdir(dir) do
+        Dir.glob('**/*', File::FNM_DOTMATCH)
+           .reject { |path| File.directory?(path) || path.include?('/.git/') || path.start_with?('.git/') }
+           .sort
+      end
+    end
+
     def generate_summary
-      gem_only = files_only_in_gem.size
-      source_only = files_only_in_source.size
+      gem_only = files_only_in_clean_gem.size
+      source_only = files_only_in_clean_source.size
       modified = get_modified_files.size
       
-      if gem_only == 0 && source_only == 0 && modified == 0
+      # If the diff file is empty, there are no content differences in shared files
+      # This means any differences are just packaging/development files
+      if diff_file_empty?
+        "✓ Gem and source code are identical"
+      elsif gem_only == 0 && source_only == 0 && modified == 0
         "✓ Gem and source code are identical"
       else
         summary = "⚠ Differences found:"
         summary += "\n  - #{gem_only} file(s) only in gem" if gem_only > 0
-        summary += "\n  - #{source_only} file(s) only in source" if source_only > 0
+        summary += "\n  - #{source_only} file(s) only in source" if source_only > 0  
         summary += "\n  - #{modified} file(s) modified" if modified > 0
         summary
       end

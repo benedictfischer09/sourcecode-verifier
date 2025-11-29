@@ -34,8 +34,12 @@ module SourcecodeVerifier
       'CODE_OF_CONDUCT.md',
       'SECURITY.md',
       
-      # Gem specification
-      '*.gemspec',
+      # Gem specification (but be careful - some gems include their main gemspec)
+      # Only exclude clearly development-specific gemspec files
+      '*-java.gemspec',
+      '*_pure.gemspec', 
+      '*-dev.gemspec',
+      'dev-*.gemspec',
       
       # Development directories
       'bin/',
