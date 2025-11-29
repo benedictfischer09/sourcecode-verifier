@@ -1,5 +1,4 @@
 # Sourcecode Verifier
-
 A Ruby gem that downloads published gems from RubyGems.org and compares them with source code from repositories like GitHub to verify integrity and detect differences.
 
 ## Features
@@ -108,7 +107,7 @@ The CLI tool automatically caches downloads in the `./cache` directory:
 ./cache/
 ├── gems/           # Extracted gem files
 │   └── base64-0.2.0/
-└── sources/        # GitHub source files  
+└── sources/        # GitHub source files
     └── ruby_base64-0.2.0/
 ```
 
@@ -125,7 +124,7 @@ Verifying base64 version 0.2.0...
 #### Exit Codes
 
 - `0`: Files are identical
-- `1`: Differences found  
+- `1`: Differences found
 - `2`: Error (missing arguments, gem not found, etc.)
 - `3`: Interrupted by user (Ctrl+C)
 - `4`: Unexpected error
@@ -170,16 +169,16 @@ if report.identical?
   puts "✓ Gem and source code match perfectly!"
 else
   puts "⚠ Differences found:"
-  
+
   # Show files only in gem
   puts "Files only in gem: #{report.gem_only_files}"
-  
+
   # Show files only in source
   puts "Files only in source: #{report.source_only_files}"
-  
+
   # Show modified files
   puts "Modified files: #{report.modified_files}"
-  
+
   # Get the detailed diff
   puts File.read(report.diff_file_path)
 end

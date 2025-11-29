@@ -58,6 +58,8 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.6)
+    rspec_junit_formatter (0.6.0)
+      rspec-core (>= 2, < 4, != 2.12.0)
     rubyzip (2.4.1)
     sawyer (0.9.3)
       addressable (>= 2.3.5)
@@ -78,6 +80,7 @@ DEPENDENCIES
   bundler (~> 2.0)
   rake (~> 13.0)
   rspec (~> 3.0)
+  rspec_junit_formatter (~> 0.6)
   sourcecode_verifier!
   webmock (~> 3.0)
 
