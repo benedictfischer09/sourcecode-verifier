@@ -14,7 +14,8 @@ def show_usage
   puts "  -b, --bundled            Analyze all gems from bundle list"
   puts "      --html               Generate HTML report (default for --bundled)"
   puts "      --zip                Create ZIP file for CI (implies --html)"
-  puts "  -v, --verbose            Verbose output"
+  puts "  -v, --verbose            Verbose output (sets log level to DEBUG)"
+  puts "  -l, --log-level LEVEL    Set log level (debug, info, warn, error)"
   puts "  -h, --help               Show this help"
   puts ""
   puts "Examples:"
@@ -30,7 +31,8 @@ options = {
   verbose: false,
   bundled: false,
   html: false,
-  zip: false
+  zip: false,
+  log_level: 'info'
 }
 
 OptionParser.new do |opts|
@@ -62,8 +64,13 @@ OptionParser.new do |opts|
     options[:html] = true
   end
 
-  opts.on("-v", "--verbose", "Verbose output") do
+  opts.on("-v", "--verbose", "Verbose output (sets log level to DEBUG)") do
     options[:verbose] = true
+    options[:log_level] = 'debug'
+  end
+
+  opts.on("-l", "--log-level LEVEL", "Set log level (debug, info, warn, error)") do |level|
+    options[:log_level] = level
   end
 
   opts.on("-h", "--help", "Show this help") do
@@ -71,6 +78,9 @@ OptionParser.new do |opts|
     exit
   end
 end.parse!
+
+# Configure logging level
+SourcecodeVerifier.set_log_level(options[:log_level])
 
 if options[:bundled]
   # Bundled mode - analyze all gems
@@ -100,7 +110,7 @@ else
   version = ARGV[1]
 
   begin
-    puts "Verifying #{gem_name} version #{version}..." if options[:verbose]
+    puts "Verifying #{gem_name} version #{version}..."
     
     report = SourcecodeVerifier.verify(gem_name, version, options)
     

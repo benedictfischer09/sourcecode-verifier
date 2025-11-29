@@ -57,17 +57,13 @@ module SourcecodeVerifier
       end
       
       # Optional: print what files we copied for debugging
-      if options && options[:verbose] && options[:debug]
-        files = Dir.glob(File.join(target_dir, '**/*')).select { |f| File.file?(f) }.map { |f| f.sub(target_dir + '/', '') }
-        puts "Copied #{type} files: #{files}"
-      end
+      files = Dir.glob(File.join(target_dir, '**/*')).select { |f| File.file?(f) }.map { |f| f.sub(target_dir + '/', '') }
+      SourcecodeVerifier.logger.debug "Copied #{type} files (#{files.length}): #{files.join(', ')}"
     end
 
     def debug_file_differences
-      if options && options[:verbose]
-        puts "Files only in clean gem: #{files_only_in_clean_gem}"
-        puts "Files only in clean source: #{files_only_in_clean_source}" 
-      end
+      SourcecodeVerifier.logger.debug "Files only in clean gem: #{files_only_in_clean_gem}"
+      SourcecodeVerifier.logger.debug "Files only in clean source: #{files_only_in_clean_source}"
     end
 
     def prepare_directories_for_comparison(clean_gem_dir, clean_source_dir)

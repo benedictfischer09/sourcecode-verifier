@@ -11,10 +11,12 @@ module SourcecodeVerifier
 
     def analyze_all
       gems = get_bundled_gems
-      puts "Found #{gems.size} gems to analyze..." if options[:verbose]
+      puts "Found #{gems.size} gems to analyze..."
+      SourcecodeVerifier.logger.info "Starting bundled analysis of #{gems.size} gems"
 
       gems.each_with_index do |(gem_name, version), index|
-        puts "Analyzing #{gem_name} #{version} (#{index + 1}/#{gems.size})..." if options[:verbose]
+        puts "Analyzing #{gem_name} #{version} (#{index + 1}/#{gems.size})..."
+        SourcecodeVerifier.logger.debug "Processing gem #{index + 1}/#{gems.size}: #{gem_name} #{version}"
         
         result = analyze_gem(gem_name, version)
         @results << result
@@ -80,7 +82,8 @@ module SourcecodeVerifier
       start_time = Time.now
       
       begin
-        report = SourcecodeVerifier.verify(gem_name, version, options.merge(verbose: false))
+        SourcecodeVerifier.logger.debug "Verifying gem #{gem_name} #{version}"
+        report = SourcecodeVerifier.verify(gem_name, version, options)
         
         status = if report.identical?
           'matching'
@@ -138,7 +141,8 @@ module SourcecodeVerifier
     end
 
     def generate_reports
-      puts "\nGenerating HTML report..." if options[:verbose]
+      puts "\nGenerating HTML report..."
+      SourcecodeVerifier.logger.info "Generating HTML report for #{@results.size} gems"
       
       html_generator = HtmlReportGenerator.new(@results, options)
       output_file = html_generator.generate

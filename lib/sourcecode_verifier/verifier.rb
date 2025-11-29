@@ -43,7 +43,7 @@ module SourcecodeVerifier
       # First try to find locally installed gem
       local_gem_path = find_local_gem_path
       if local_gem_path
-        puts "⚡ Using locally installed gem at #{local_gem_path}" if options[:verbose]
+        SourcecodeVerifier.logger.info "Using locally installed gem at #{local_gem_path}"
         return local_gem_path
       end
 
@@ -51,10 +51,10 @@ module SourcecodeVerifier
       cached_gem_dir = File.join(cache_dir, 'gems', "#{gem_name}-#{version}")
       
       if Dir.exist?(cached_gem_dir) && !Dir.empty?(cached_gem_dir)
-        puts "⚠ Using cached gem content for #{gem_name}-#{version}" if options[:verbose]
+        SourcecodeVerifier.logger.debug "Using cached gem content for #{gem_name}-#{version} at #{cached_gem_dir}"
         cached_gem_dir
       else
-        puts "Downloading gem #{gem_name}-#{version}..." if options[:verbose]
+        SourcecodeVerifier.logger.info "Downloading gem #{gem_name}-#{version}..."
         gem_downloader = GemDownloader.new(gem_name, version, cache_dir: cache_dir)
         gem_downloader.download_and_extract(cached_gem_dir)
       end
@@ -67,10 +67,10 @@ module SourcecodeVerifier
       cached_source_dir = File.join(cache_dir, 'sources', "#{repo_name || gem_name}-#{version}")
       
       if Dir.exist?(cached_source_dir) && !Dir.empty?(cached_source_dir)
-        puts "⚠ Using cached source content for #{gem_name}-#{version}" if options[:verbose]
+        SourcecodeVerifier.logger.debug "Using cached source content for #{gem_name}-#{version} at #{cached_source_dir}"
         cached_source_dir
       else
-        puts "Downloading source for #{gem_name}-#{version}..." if options[:verbose]
+        SourcecodeVerifier.logger.info "Downloading source for #{gem_name}-#{version}..."
         adapter.download_and_extract(cached_source_dir, version)
       end
     end
@@ -96,7 +96,7 @@ module SourcecodeVerifier
           gem_path = output.strip
           # Verify the version matches what we're looking for
           if gem_version_matches?(gem_path)
-            puts "Found locally bundled gem: #{gem_name} #{version}" if options[:verbose]
+            SourcecodeVerifier.logger.debug "Found locally bundled gem: #{gem_name} #{version} at #{gem_path}"
             return gem_path
           end
         end
@@ -108,12 +108,12 @@ module SourcecodeVerifier
           # Extract gem root from require path
           gem_path = File.dirname(File.dirname(require_path))
           if gem_version_matches?(gem_path)
-            puts "Found system gem: #{gem_name} #{version}" if options[:verbose]
+            SourcecodeVerifier.logger.debug "Found system gem: #{gem_name} #{version} at #{gem_path}"
             return gem_path
           end
         end
       rescue => e
-        puts "Warning: Failed to check for local gem: #{e.message}" if options[:verbose]
+        SourcecodeVerifier.logger.warn "Failed to check for local gem: #{e.message}"
       end
       
       nil
@@ -154,7 +154,7 @@ module SourcecodeVerifier
       # If we can't determine version, assume it doesn't match to be safe
       false
     rescue => e
-      puts "Warning: Failed to check gem version at #{gem_path}: #{e.message}" if options[:verbose]
+      SourcecodeVerifier.logger.warn "Failed to check gem version at #{gem_path}: #{e.message}"
       false
     end
 
