@@ -1,4 +1,5 @@
 require_relative "sourcecode_verifier/version"
+require_relative "sourcecode_verifier/file_filter"
 require_relative "sourcecode_verifier/verifier"
 require_relative "sourcecode_verifier/gem_downloader"
 require_relative "sourcecode_verifier/adapters/github"

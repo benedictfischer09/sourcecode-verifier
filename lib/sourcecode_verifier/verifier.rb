@@ -79,7 +79,7 @@ module SourcecodeVerifier
     end
 
     def compare_directories(gem_dir, source_dir)
-      diff_engine = DiffEngine.new(gem_dir, source_dir)
+      diff_engine = DiffEngine.new(gem_dir, source_dir, options)
       diff_result = diff_engine.compare
 
       Report.new(diff_result, gem_name, version)
