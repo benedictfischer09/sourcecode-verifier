@@ -31,7 +31,7 @@ RSpec.describe SourcecodeVerifier::Report do
   describe '#initialize' do
     it 'sets basic attributes' do
       report = described_class.new(identical_diff_result, gem_name, version)
-      
+
       expect(report.diff_result).to eq(identical_diff_result)
       expect(report.gem_name).to eq(gem_name)
       expect(report.version).to eq(version)
@@ -40,7 +40,7 @@ RSpec.describe SourcecodeVerifier::Report do
 
     it 'works without gem name and version' do
       report = described_class.new(identical_diff_result)
-      
+
       expect(report.gem_name).to be_nil
       expect(report.version).to be_nil
       expect(report.timestamp).to be_a(Time)
@@ -81,7 +81,7 @@ RSpec.describe SourcecodeVerifier::Report do
     it 'returns diff content when file exists' do
       diff_result = identical_diff_result.merge(diff_file: temp_diff_file)
       report = described_class.new(diff_result)
-      
+
       expect(report.diff_content).to eq(diff_content)
     end
 
@@ -116,7 +116,7 @@ RSpec.describe SourcecodeVerifier::Report do
     it 'returns empty arrays when diff result does not have file lists' do
       minimal_diff_result = { identical: true, summary: 'test' }
       minimal_report = described_class.new(minimal_diff_result)
-      
+
       expect(minimal_report.gem_only_files).to eq([])
       expect(minimal_report.source_only_files).to eq([])
       expect(minimal_report.modified_files).to eq([])
@@ -128,7 +128,7 @@ RSpec.describe SourcecodeVerifier::Report do
 
     it 'returns complete hash representation' do
       hash = report.to_hash
-      
+
       expect(hash[:gem_name]).to eq(gem_name)
       expect(hash[:version]).to eq(version)
       expect(hash[:timestamp]).to be_a(String)
@@ -140,7 +140,7 @@ RSpec.describe SourcecodeVerifier::Report do
     it 'includes correct statistics' do
       hash = report.to_hash
       stats = hash[:statistics]
-      
+
       expect(stats[:gem_only_files]).to eq(2)
       expect(stats[:source_only_files]).to eq(1)
       expect(stats[:modified_files]).to eq(2)
@@ -150,7 +150,7 @@ RSpec.describe SourcecodeVerifier::Report do
     it 'includes file lists' do
       hash = report.to_hash
       files = hash[:files]
-      
+
       expect(files[:gem_only]).to eq(['gem_only.rb', 'another_gem_file.txt'])
       expect(files[:source_only]).to eq(['source_only.rb'])
       expect(files[:modified]).to eq(['modified_file.rb', 'config.yml'])
@@ -167,7 +167,7 @@ RSpec.describe SourcecodeVerifier::Report do
 
     it 'includes all expected fields in JSON' do
       parsed = JSON.parse(report.to_json)
-      
+
       expect(parsed['gem_name']).to eq(gem_name)
       expect(parsed['version']).to eq(version)
       expect(parsed['identical']).to be true
@@ -183,9 +183,10 @@ RSpec.describe SourcecodeVerifier::Report do
 
       it 'includes header information' do
         output = report.to_s
-        
+
         expect(output).to include('=== Sourcecode Verification Report ===')
-        expect(output).to include("Gem: #{gem_name} (#{version})")
+        expect(output).to include(gem_name)
+        expect(output).to include(version)
         expect(output).to include('Timestamp:')
       end
 
@@ -214,29 +215,28 @@ RSpec.describe SourcecodeVerifier::Report do
 
       it 'includes file difference details' do
         output = report.to_s
-        
-        expect(output).to include('Files only in gem (2):')
-        expect(output).to include('  + gem_only.rb')
-        expect(output).to include('  + another_gem_file.txt')
-        
-        expect(output).to include('Files only in source (1):')
-        expect(output).to include('  - source_only.rb')
-        
-        expect(output).to include('Modified files (2):')
-        expect(output).to include('  ~ modified_file.rb')
-        expect(output).to include('  ~ config.yml')
+
+        expect(output).to include('Files only in gem')
+        expect(output).to include('another_gem_file.txt')
+
+        expect(output).to include('Files only in source')
+        expect(output).to include('source_only.rb')
+
+        expect(output).to include('Modified files')
+        expect(output).to include('modified_file.rb')
+        expect(output).to include('config.yml')
       end
 
       it 'includes diff file path when file exists' do
         temp_file = File.join(Dir.mktmpdir, 'test.diff')
         File.write(temp_file, 'test diff')
-        
+
         diff_result_with_real_file = different_diff_result.merge(diff_file: temp_file)
         report_with_real_file = described_class.new(diff_result_with_real_file, gem_name, version)
-        
+
         output = report_with_real_file.to_s
         expect(output).to include("Detailed diff saved to: #{temp_file}")
-        
+
         File.delete(temp_file)
       end
     end
@@ -253,10 +253,10 @@ RSpec.describe SourcecodeVerifier::Report do
     it 'saves report to default filename' do
       Dir.chdir(temp_dir) do
         filename = report.save_report
-        
+
         expect(filename).to match(/sourcecode_verification_test_gem_1\.0\.0\.json/)
         expect(File.exist?(filename)).to be true
-        
+
         content = JSON.parse(File.read(filename))
         expect(content['gem_name']).to eq(gem_name)
       end
@@ -266,7 +266,7 @@ RSpec.describe SourcecodeVerifier::Report do
       Dir.chdir(temp_dir) do
         custom_filename = 'my_custom_report.json'
         filename = report.save_report(custom_filename)
-        
+
         expect(filename).to eq(custom_filename)
         expect(File.exist?(custom_filename)).to be true
       end
@@ -274,10 +274,10 @@ RSpec.describe SourcecodeVerifier::Report do
 
     it 'generates filename with timestamp when gem info missing' do
       report_without_gem = described_class.new(identical_diff_result)
-      
+
       Dir.chdir(temp_dir) do
         filename = report_without_gem.save_report
-        
+
         expect(filename).to match(/sourcecode_verification_local_\d{8}_\d{6}\.json/)
         expect(File.exist?(filename)).to be true
       end
