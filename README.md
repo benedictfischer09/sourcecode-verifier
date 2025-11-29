@@ -10,6 +10,8 @@ A Ruby gem that downloads published gems from RubyGems.org and compares them wit
 - Compare gem files with source code files using git diff
 - Generate detailed reports showing differences
 - Support for local file verification (optimized flow)
+- **CLI tool with smart caching** - Downloads stored locally for repeated analysis
+- **Intelligent cache management** - Warns when using cached content, organized by gem/version
 - Extensible adapter system for different source code platforms
 
 ## Installation
@@ -30,7 +32,107 @@ Or install it yourself as:
 
 ## Usage
 
-### Basic Verification
+### Command Line Interface (CLI)
+
+The gem includes a CLI tool for easy verification from the command line:
+
+#### Basic Usage
+
+```bash
+# Verify any gem against its GitHub source
+./exe/sourcecode-verifier <gem_name> <version>
+
+# Example: verify the base64 gem
+./exe/sourcecode-verifier base64 0.2.0
+```
+
+#### CLI Options
+
+```bash
+Usage: sourcecode-verifier [options] <gem_name> <version>
+
+Options:
+  -r, --repo REPO          GitHub repository (owner/repo)
+  -t, --token TOKEN        GitHub token for private repos
+  -c, --cache-dir DIR      Cache directory (default: ./cache)
+  -v, --verbose            Verbose output
+  -h, --help               Show this help
+
+Examples:
+  sourcecode-verifier rails 7.0.0
+  sourcecode-verifier --repo myorg/mygem mygem 1.0.0
+  sourcecode-verifier --token $GITHUB_TOKEN private_gem 0.1.0
+  sourcecode-verifier --verbose --cache-dir /tmp/cache rails 6.1.0
+```
+
+#### CLI Output
+
+```bash
+$ ./exe/sourcecode-verifier --verbose base64 0.2.0
+Verifying base64 version 0.2.0...
+Downloading gem base64-0.2.0...
+Downloading source for base64-0.2.0...
+
+=== Sourcecode Verification Report ===
+Gem: base64 (0.2.0)
+Timestamp: 2025-11-29 11:23:10 -0500
+
+⚠ Differences found:
+  - 9 file(s) only in source
+  - 6 file(s) modified
+
+Files only in source (9):
+  - .github/dependabot.yml
+  - .github/workflows/test.yml
+  - .gitignore
+  - Gemfile
+  - Rakefile
+  - base64.gemspec
+  - bin/console
+  - bin/setup
+  - test/base64/test_base64.rb
+
+Modified files (6):
+  ~ lib/base64.rb
+  ~ README.md
+  [...]
+
+Detailed diff saved to: sourcecode_diff_20251129_112310.diff
+```
+
+#### Caching
+
+The CLI tool automatically caches downloads in the `./cache` directory:
+
+```
+./cache/
+├── gems/           # Extracted gem files
+│   └── base64-0.2.0/
+└── sources/        # GitHub source files  
+    └── ruby_base64-0.2.0/
+```
+
+When content is already cached:
+
+```bash
+$ ./exe/sourcecode-verifier --verbose base64 0.2.0
+Verifying base64 version 0.2.0...
+⚠ Using cached gem content for base64-0.2.0
+⚠ Using cached source content for base64-0.2.0
+[... continues with verification ...]
+```
+
+#### Exit Codes
+
+- `0`: Files are identical
+- `1`: Differences found  
+- `2`: Error (missing arguments, gem not found, etc.)
+- `3`: Interrupted by user (Ctrl+C)
+- `4`: Unexpected error
+
+### Ruby API
+
+#### Basic Verification
 
 ```ruby
 require 'sourcecode_verifier'
@@ -43,13 +145,15 @@ puts "Identical: #{report.identical?}"
 puts "Diff file: #{report.diff_file_path}"
 ```
 
-### Advanced Options
+#### Advanced Options
 
 ```ruby
 # Specify a custom GitHub repository
 report = SourcecodeVerifier.verify('my_gem', '1.0.0', {
   github_repo: 'myusername/my_gem',
-  github_token: 'your_github_token' # Optional, for private repos
+  github_token: 'your_github_token', # Optional, for private repos
+  cache_dir: './my_cache',           # Custom cache directory
+  verbose: true                      # Enable verbose output
 })
 
 # Use local files (optimized flow)

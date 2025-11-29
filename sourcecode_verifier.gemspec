@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
     end
   end
   spec.bindir = "exe"
-  spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
+  spec.executables = ["sourcecode-verifier"]
   spec.require_paths = ["lib"]
 
   spec.add_dependency "httparty", "~> 0.21"

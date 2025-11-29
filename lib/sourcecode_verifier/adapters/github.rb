@@ -18,9 +18,10 @@ module SourcecodeVerifier
         @github_repo = options[:github_repo] || discover_github_repo
       end
 
-      def download_and_extract(temp_dir, version)
+      def download_and_extract(target_dir, version)
+        FileUtils.mkdir_p(target_dir)
         tag = find_matching_tag(version)
-        download_source_archive(temp_dir, tag)
+        download_source_archive(target_dir, tag)
       end
 
       private
@@ -83,26 +84,26 @@ module SourcecodeVerifier
         end
       end
 
-      def download_source_archive(temp_dir, tag)
-        archive_url = "https://github.com/#{github_repo}/archive/refs/tags/#{tag}.zip"
-        archive_path = File.join(temp_dir, "#{tag}.zip")
-        
-        response = HTTParty.get(archive_url, follow_redirects: true)
-        
-        if response.success?
-          File.open(archive_path, 'wb') do |file|
-            file.write(response.body)
-          end
+      def download_source_archive(target_dir, tag)
+        Dir.mktmpdir("github_download") do |temp_dir|
+          archive_url = "https://github.com/#{github_repo}/archive/refs/tags/#{tag}.zip"
+          archive_path = File.join(temp_dir, "#{tag}.zip")
           
-          extract_archive(archive_path, temp_dir)
-        else
-          raise Error, "Failed to download source archive from GitHub: #{response.code} #{response.message}"
+          response = HTTParty.get(archive_url, follow_redirects: true)
+          
+          if response.success?
+            File.open(archive_path, 'wb') do |file|
+              file.write(response.body)
+            end
+            
+            extract_archive(archive_path, target_dir)
+          else
+            raise Error, "Failed to download source archive from GitHub: #{response.code} #{response.message}"
+          end
         end
       end
 
-      def extract_archive(archive_path, temp_dir)
-        source_dir = File.join(temp_dir, 'source_files')
-        
+      def extract_archive(archive_path, target_dir)
         Zip::File.open(archive_path) do |zip_file|
           # GitHub archives have a top-level directory, we want to extract its contents
           top_level_dirs = zip_file.entries.map(&:name).map { |name| name.split('/').first }.uniq
@@ -118,7 +119,7 @@ module SourcecodeVerifier
               relative_path = entry.name.sub(/^#{Regexp.escape(top_level_dir)}\//, '')
               next if relative_path.empty?
               
-              target_path = File.join(source_dir, relative_path)
+              target_path = File.join(target_dir, relative_path)
               
               if entry.directory?
                 FileUtils.mkdir_p(target_path)
@@ -130,7 +131,7 @@ module SourcecodeVerifier
           else
             # Fallback: extract everything as-is
             zip_file.each do |entry|
-              target_path = File.join(source_dir, entry.name)
+              target_path = File.join(target_dir, entry.name)
               
               if entry.directory?
                 FileUtils.mkdir_p(target_path)
@@ -142,7 +143,7 @@ module SourcecodeVerifier
           end
         end
         
-        source_dir
+        target_dir
       end
     end
   end
