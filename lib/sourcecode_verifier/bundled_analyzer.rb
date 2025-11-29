@@ -163,8 +163,12 @@ module SourcecodeVerifier
         return
       end
       
+      # Create reports/zips directory
+      reports_dir = File.join(Dir.pwd, 'reports', 'zips')
+      FileUtils.mkdir_p(reports_dir)
+      
       timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
-      zip_filename = "sourcecode_verification_report_#{timestamp}.zip"
+      zip_filename = File.join(reports_dir, "sourcecode_verification_report_#{timestamp}.zip")
       
       Zip::File.open(zip_filename, create: true) do |zip|
         zip.add("index.html", html_file)

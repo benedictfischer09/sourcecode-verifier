@@ -35,15 +35,11 @@ Thumbs.db
 
 # Cache directories for gem and source downloads
 /cache/
-/cache/gems/
-/cache/sources/
-/diffs/
+
+# Reports directory for all output files
 /reports/
 
 # Temporary files
 *.tmp
-*.diff
-*.html
-*.zip
 
 .rspec_status

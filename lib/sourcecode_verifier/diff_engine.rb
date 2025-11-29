@@ -113,8 +113,10 @@ module SourcecodeVerifier
           end
         end
         
-        # Copy diff file to a permanent location
-        permanent_diff_file = File.join(Dir.pwd, "sourcecode_diff_#{Time.now.strftime('%Y%m%d_%H%M%S')}.diff")
+        # Copy diff file to reports folder
+        reports_dir = File.join(Dir.pwd, 'reports', 'diffs')
+        FileUtils.mkdir_p(reports_dir)
+        permanent_diff_file = File.join(reports_dir, "sourcecode_diff_#{Time.now.strftime('%Y%m%d_%H%M%S')}.diff")
         FileUtils.cp(@diff_file, permanent_diff_file)
         @diff_file = permanent_diff_file
       end

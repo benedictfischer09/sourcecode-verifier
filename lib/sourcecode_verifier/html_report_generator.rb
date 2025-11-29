@@ -1,5 +1,6 @@
 require 'erb'
 require 'cgi'
+require 'fileutils'
 
 # Simple humanize method for status strings
 class String
@@ -18,8 +19,12 @@ module SourcecodeVerifier
     end
 
     def generate
+      # Create reports/html directory
+      reports_dir = File.join(Dir.pwd, 'reports', 'html')
+      FileUtils.mkdir_p(reports_dir)
+      
       timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
-      filename = "sourcecode_verification_report_#{timestamp}.html"
+      filename = File.join(reports_dir, "sourcecode_verification_report_#{timestamp}.html")
       
       File.write(filename, generate_html)
       filename
