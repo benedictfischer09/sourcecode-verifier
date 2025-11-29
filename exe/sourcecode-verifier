@@ -5,11 +5,15 @@ require 'optparse'
 
 def show_usage
   puts "Usage: sourcecode-verifier [options] <gem_name> <version>"
+  puts "       sourcecode-verifier --bundled [options]"
   puts ""
   puts "Options:"
   puts "  -r, --repo REPO          GitHub repository (owner/repo)"
   puts "  -t, --token TOKEN        GitHub token for private repos"
   puts "  -c, --cache-dir DIR      Cache directory (default: ./cache)"
+  puts "  -b, --bundled            Analyze all gems from bundle list"
+  puts "      --html               Generate HTML report (default for --bundled)"
+  puts "      --zip                Create ZIP file for CI (implies --html)"
   puts "  -v, --verbose            Verbose output"
   puts "  -h, --help               Show this help"
   puts ""
@@ -17,11 +21,16 @@ def show_usage
   puts "  sourcecode-verifier rails 7.0.0"
   puts "  sourcecode-verifier --repo myorg/mygem mygem 1.0.0"
   puts "  sourcecode-verifier --token $GITHUB_TOKEN private_gem 0.1.0"
+  puts "  sourcecode-verifier --bundled --html"
+  puts "  sourcecode-verifier --bundled --zip --token $GITHUB_TOKEN"
 end
 
 options = {
   cache_dir: './cache',
-  verbose: false
+  verbose: false,
+  bundled: false,
+  html: false,
+  zip: false
 }
 
 OptionParser.new do |opts|
@@ -39,6 +48,20 @@ OptionParser.new do |opts|
     options[:cache_dir] = dir
   end
 
+  opts.on("-b", "--bundled", "Analyze all gems from bundle list") do
+    options[:bundled] = true
+    options[:html] = true  # Default to HTML for bundled mode
+  end
+
+  opts.on("--html", "Generate HTML report (default for --bundled)") do
+    options[:html] = true
+  end
+
+  opts.on("--zip", "Create ZIP file for CI (implies --html)") do
+    options[:zip] = true
+    options[:html] = true
+  end
+
   opts.on("-v", "--verbose", "Verbose output") do
     options[:verbose] = true
   end
@@ -49,39 +72,59 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-if ARGV.length != 2
-  show_usage
-  exit 1
-end
-
-gem_name = ARGV[0]
-version = ARGV[1]
-
-begin
-  puts "Verifying #{gem_name} version #{version}..." if options[:verbose]
-  
-  report = SourcecodeVerifier.verify(gem_name, version, options)
-  
-  puts report.to_s
-  
-  if options[:verbose]
-    puts "\nDetailed Information:"
-    puts "Diff file: #{report.diff_file_path}"
-    puts "Identical: #{report.identical?}"
-    puts "Total differences: #{report.to_hash[:statistics][:total_differences]}"
+if options[:bundled]
+  # Bundled mode - analyze all gems
+  begin
+    require_relative '../lib/sourcecode_verifier/bundled_analyzer'
+    analyzer = SourcecodeVerifier::BundledAnalyzer.new(options)
+    analyzer.analyze_all
+  rescue SourcecodeVerifier::Error => e
+    puts "Error: #{e.message}"
+    exit 2
+  rescue Interrupt
+    puts "\nInterrupted by user"
+    exit 3
+  rescue => e
+    puts "Unexpected error: #{e.message}"
+    puts e.backtrace if options[:verbose]
+    exit 4
   end
-  
-  # Exit with non-zero code if differences found
-  exit(report.identical? ? 0 : 1)
-  
-rescue SourcecodeVerifier::Error => e
-  puts "Error: #{e.message}"
-  exit 2
-rescue Interrupt
-  puts "\nInterrupted by user"
-  exit 3
-rescue => e
-  puts "Unexpected error: #{e.message}"
-  puts e.backtrace if options[:verbose]
-  exit 4
+else
+  # Single gem mode
+  if ARGV.length != 2
+    show_usage
+    exit 1
+  end
+
+  gem_name = ARGV[0]
+  version = ARGV[1]
+
+  begin
+    puts "Verifying #{gem_name} version #{version}..." if options[:verbose]
+    
+    report = SourcecodeVerifier.verify(gem_name, version, options)
+    
+    puts report.to_s
+    
+    if options[:verbose]
+      puts "\nDetailed Information:"
+      puts "Diff file: #{report.diff_file_path}"
+      puts "Identical: #{report.identical?}"
+      puts "Total differences: #{report.to_hash[:statistics][:total_differences]}"
+    end
+    
+    # Exit with non-zero code if differences found
+    exit(report.identical? ? 0 : 1)
+    
+  rescue SourcecodeVerifier::Error => e
+    puts "Error: #{e.message}"
+    exit 2
+  rescue Interrupt
+    puts "\nInterrupted by user"
+    exit 3
+  rescue => e
+    puts "Unexpected error: #{e.message}"
+    puts e.backtrace if options[:verbose]
+    exit 4
+  end
 end

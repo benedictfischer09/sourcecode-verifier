@@ -43,5 +43,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.diff
+*.html
+*.zip
 
 .rspec_status

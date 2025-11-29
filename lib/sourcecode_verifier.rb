@@ -5,6 +5,8 @@ require_relative "sourcecode_verifier/gem_downloader"
 require_relative "sourcecode_verifier/adapters/github"
 require_relative "sourcecode_verifier/diff_engine"
 require_relative "sourcecode_verifier/report"
+require_relative "sourcecode_verifier/bundled_analyzer"
+require_relative "sourcecode_verifier/html_report_generator"
 
 module SourcecodeVerifier
   class Error < StandardError; end

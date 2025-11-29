@@ -10,10 +10,22 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  # Configure test tags
+  config.filter_run_excluding :integration unless ENV['INTEGRATION_TESTS'] == 'true'
+  
   # Allow real connections to localhost for testing
   WebMock.disable_net_connect!(allow_localhost: true)
   
   config.before(:each) do
     WebMock.reset!
+  end
+  
+  # For integration tests, allow real network connections
+  config.before(:each, :integration) do
+    WebMock.allow_net_connect!
+  end
+  
+  config.after(:each, :integration) do
+    WebMock.disable_net_connect!(allow_localhost: true)
   end
 end
