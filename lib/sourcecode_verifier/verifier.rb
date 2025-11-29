@@ -40,6 +40,14 @@ module SourcecodeVerifier
     end
 
     def get_or_download_gem
+      # First try to find locally installed gem
+      local_gem_path = find_local_gem_path
+      if local_gem_path
+        puts "⚡ Using locally installed gem at #{local_gem_path}" if options[:verbose]
+        return local_gem_path
+      end
+
+      # Fall back to cache
       cached_gem_dir = File.join(cache_dir, 'gems', "#{gem_name}-#{version}")
       
       if Dir.exist?(cached_gem_dir) && !Dir.empty?(cached_gem_dir)
@@ -76,6 +84,78 @@ module SourcecodeVerifier
       else
         raise Error, "Unknown adapter: #{adapter_name}"
       end
+    end
+
+    def find_local_gem_path
+      return nil unless in_bundle_context?
+      
+      begin
+        # Try bundle show first (more specific to current bundle)
+        output = `bundle show #{gem_name} 2>/dev/null`
+        if $?.success? && !output.strip.empty?
+          gem_path = output.strip
+          # Verify the version matches what we're looking for
+          if gem_version_matches?(gem_path)
+            puts "Found locally bundled gem: #{gem_name} #{version}" if options[:verbose]
+            return gem_path
+          end
+        end
+        
+        # Fall back to gem which (system-wide gems)
+        output = `gem which #{gem_name} 2>/dev/null`
+        if $?.success? && !output.strip.empty?
+          require_path = output.strip
+          # Extract gem root from require path
+          gem_path = File.dirname(File.dirname(require_path))
+          if gem_version_matches?(gem_path)
+            puts "Found system gem: #{gem_name} #{version}" if options[:verbose]
+            return gem_path
+          end
+        end
+      rescue => e
+        puts "Warning: Failed to check for local gem: #{e.message}" if options[:verbose]
+      end
+      
+      nil
+    end
+
+    def in_bundle_context?
+      File.exist?('Gemfile') || ENV['BUNDLE_GEMFILE']
+    end
+
+    def gem_version_matches?(gem_path)
+      return false unless Dir.exist?(gem_path)
+      
+      # Extract version from path (most reliable for bundled gems)
+      # Path format: /path/to/gems/gem-name-version
+      if match = File.basename(gem_path).match(/^#{Regexp.escape(gem_name)}-(.+)$/)
+        path_version = match[1]
+        return path_version == version
+      end
+      
+      # Look for VERSION file or extract from gemspec
+      version_file = File.join(gem_path, 'VERSION')
+      if File.exist?(version_file)
+        local_version = File.read(version_file).strip
+        return local_version == version
+      end
+      
+      # Check gemspec files for version
+      gemspec_files = Dir.glob(File.join(gem_path, '*.gemspec'))
+      gemspec_files.each do |gemspec_file|
+        content = File.read(gemspec_file)
+        if match = content.match(/\.version\s*=\s*['"]([^'"]+)['"]/) ||
+                   content.match(/VERSION\s*=\s*['"]([^'"]+)['"]/)
+          local_version = match[1]
+          return local_version == version
+        end
+      end
+      
+      # If we can't determine version, assume it doesn't match to be safe
+      false
+    rescue => e
+      puts "Warning: Failed to check gem version at #{gem_path}: #{e.message}" if options[:verbose]
+      false
     end
 
     def compare_directories(gem_dir, source_dir)
