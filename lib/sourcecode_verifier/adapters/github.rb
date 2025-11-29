@@ -29,17 +29,17 @@ module SourcecodeVerifier
       def discover_github_repo
         # First try to get repo info from RubyGems API
         rubygems_api_url = "https://rubygems.org/api/v1/gems/#{gem_name}.json"
+        SourcecodeVerifier.logger.debug "Fetching gem info from: #{rubygems_api_url}"
         response = HTTParty.get(rubygems_api_url)
         
         if response.success?
           gem_info = JSON.parse(response.body)
+          SourcecodeVerifier.logger.debug "Got gem info for #{gem_name}"
           
-          # Try various fields that might contain GitHub URL
-          github_url = gem_info['homepage_uri'] || 
-                      gem_info['source_code_uri'] ||
-                      gem_info['project_uri']
+          github_url = find_github_url_in_gem_info(gem_info)
           
-          if github_url && github_url.include?('github.com')
+          if github_url
+            SourcecodeVerifier.logger.debug "Found GitHub URL: #{github_url}"
             extract_repo_from_url(github_url)
           else
             raise Error, "Could not discover GitHub repository for gem '#{gem_name}'. Please provide github_repo option."
@@ -49,11 +49,60 @@ module SourcecodeVerifier
         end
       end
 
+      def find_github_url_in_gem_info(gem_info)
+        # Check top-level fields first
+        urls_to_check = [
+          gem_info['source_code_uri'],
+          gem_info['homepage_uri'], 
+          gem_info['project_uri']
+        ]
+        
+        # Check metadata fields (often more accurate)
+        if gem_info['metadata'].is_a?(Hash)
+          metadata = gem_info['metadata']
+          urls_to_check += [
+            metadata['source_code_uri'],
+            metadata['homepage_uri'],
+            metadata['project_uri'],
+            metadata['bug_tracker_uri'],
+            metadata['changelog_uri'],
+            metadata['documentation_uri']
+          ]
+        end
+        
+        # Find first GitHub URL (prioritize GitHub, but could be extended for GitLab, etc.)
+        github_url = urls_to_check.compact.find do |url|
+          url.is_a?(String) && url.include?('github.com')
+        end
+        
+        # If no GitHub URL found, log what URLs we did find for debugging
+        unless github_url
+          other_urls = urls_to_check.compact.select { |url| url.is_a?(String) }
+          if other_urls.any?
+            SourcecodeVerifier.logger.debug "No GitHub URL found, available URLs: #{other_urls.join(', ')}"
+          else
+            SourcecodeVerifier.logger.debug "No source URLs found in gem metadata"
+          end
+        end
+        
+        github_url
+      end
+
       def extract_repo_from_url(url)
         # Extract owner/repo from various GitHub URL formats
-        match = url.match(%r{github\.com[/:]([\w\-\.]+)/([\w\-\.]+)})
+        # Handle: https://github.com/owner/repo, git://github.com/owner/repo.git, 
+        #         https://github.com/owner/repo/tree/branch, etc.
+        match = url.match(%r{github\.com[/:]([^/]+)/([^/\s]+)})
         if match
-          "#{match[1]}/#{match[2].sub(/\.git$/, '')}"
+          owner = match[1]
+          repo = match[2]
+          
+          # Clean up paths and fragments, but preserve valid repo names
+          repo = repo.split(/[#?]/).first           # Remove fragments/query params
+          repo = repo.sub(%r{/(tree|blob|releases|issues).*$}, '') # Remove GitHub path suffixes
+          repo = repo.sub(/\.git$/, '')            # Remove .git suffix only
+          
+          "#{owner}/#{repo}"
         else
           raise Error, "Could not extract repository information from GitHub URL: #{url}"
         end
@@ -64,21 +113,51 @@ module SourcecodeVerifier
         
         begin
           tags = client.tags(github_repo)
+          tag_names = tags.map(&:name)
           
-          # Try to find exact match first
-          exact_match = tags.find { |tag| tag.name == version || tag.name == "v#{version}" }
-          return exact_match.name if exact_match
+          SourcecodeVerifier.logger.debug "Looking for version #{version} in #{tag_names.size} tags"
           
-          # Try to find close matches
-          version_matches = tags.select do |tag|
-            tag.name.match?(/^v?#{Regexp.escape(version)}($|[^\d])/)
+          # Try different tag patterns in order of preference
+          tag_patterns = [
+            version,                           # exact: 1.0.0
+            "v#{version}",                     # v-prefix: v1.0.0  
+            "#{gem_name}-#{version}",          # gem-prefix: gem-1.0.0
+            "#{gem_name}_#{version}",          # gem_underscore: gem_1.0.0
+            "#{gem_name}/#{version}",          # gem/version: gem/1.0.0
+            "release-#{version}",              # release-prefix: release-1.0.0
+            "#{version}-release"               # version-suffix: 1.0.0-release
+          ]
+          
+          # Try exact matches first
+          tag_patterns.each do |pattern|
+            exact_match = tags.find { |tag| tag.name == pattern }
+            if exact_match
+              SourcecodeVerifier.logger.debug "Found exact tag match: #{exact_match.name}"
+              return exact_match.name
+            end
           end
           
-          if version_matches.any?
-            version_matches.first.name
-          else
-            raise Error, "Could not find matching tag for version '#{version}' in repository '#{github_repo}'. Available tags: #{tags.map(&:name).join(', ')}"
+          # Try regex matches for more flexible matching
+          version_regex = Regexp.escape(version)
+          flexible_patterns = [
+            /^v?#{version_regex}$/,                    # v1.0.0 or 1.0.0
+            /^#{gem_name}[-_]?v?#{version_regex}$/,    # gem-v1.0.0, gem_1.0.0, gem-1.0.0
+            /^v?#{version_regex}[-_].*$/,              # 1.0.0-anything
+            /.*[-_]v?#{version_regex}$/,               # anything-1.0.0
+            /^v?#{version_regex}[^\d]/,                # 1.0.0 followed by non-digit
+          ]
+          
+          flexible_patterns.each do |pattern|
+            matches = tags.select { |tag| tag.name.match?(pattern) }
+            if matches.any?
+              match = matches.first
+              SourcecodeVerifier.logger.debug "Found regex tag match: #{match.name} (pattern: #{pattern})"
+              return match.name
+            end
           end
+          
+          raise Error, "Could not find matching tag for version '#{version}' in repository '#{github_repo}'. Available tags: #{tag_names.first(20).join(', ')}#{tag_names.size > 20 ? '...' : ''}"
+          
         rescue Octokit::Error => e
           raise Error, "Failed to fetch tags from GitHub repository '#{github_repo}': #{e.message}"
         end
