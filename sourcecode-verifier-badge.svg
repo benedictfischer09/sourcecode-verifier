@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250" fill="none" role="img" aria-label="sourcecode-verifier banner">
+  <defs>
+    <linearGradient id="rubyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E0115F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9E0E42;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lensGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#dbeafe;stop-opacity:0.1" />
+    </linearGradient>
+     <linearGradient id="handleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+    </linearGradient>
+
+    <clipPath id="lens-clip">
+      <circle cx="230" cy="125" r="70" />
+    </clipPath>
+  </defs>
+
+  <rect x="10" y="10" width="780" height="230" rx="15" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2" opacity="0.5"/>
+
+  <g transform="translate(50, 0)">
+    <path d="M160 50 L220 50 L250 100 L190 170 L130 100 L160 50 Z" fill="url(#rubyGrad)" stroke="#9E0E42" stroke-width="2"/>
+    <path d="M160 50 L190 100 M220 50 L190 100 M130 100 L190 100 M250 100 L190 100 M190 170 L190 100" stroke="#ff8ba7" stroke-width="1.5" opacity="0.6"/>
+
+    <path d="M285 175 L340 220 C350 230 365 225 370 215 C375 205 370 190 360 180 L305 135" fill="url(#handleGrad)" stroke="#334155" stroke-width="3"/>
+
+    <circle cx="230" cy="125" r="75" fill="none" stroke="#475569" stroke-width="6"/>
+
+    <g clip-path="url(#lens-clip)">
+      <circle cx="230" cy="125" r="75" fill="url(#lensGrad)"/>
+
+      <g transform="translate(-20, 10) scale(1.2)" opacity="0.7">
+          <text x="170" y="85" font-family="monospace" font-size="10" fill="#E0115F">101101001</text>
+          <text x="165" y="100" font-family="monospace" font-size="10" fill="#E0115F">01SOURCE1</text>
+          <text x="175" y="115" font-family="monospace" font-size="10" fill="#E0115F">110CODE01</text>
+          <text x="180" y="130" font-family="monospace" font-size="10" fill="#E0115F">001011010</text>
+      </g>
+
+      <path d="M195 125 L220 150 L265 100" fill="none" stroke="#10b981" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+         <animate attributeName="stroke-dasharray" from="0,200" to="200,0" dur="1s" fill="freeze" calcMode="spline" keySplines="0.42 0 0.58 1"/>
+      </path>
+    </g>
+
+    <path d="M185 100 C185 100 200 80 230 80 C250 80 265 90 265 90" stroke="white" stroke-width="4" opacity="0.4" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="400" y="135" font-size="42" font-weight="bold" fill="#1e293b">
+      sourcecode<tspan fill="#E0115F">-verifier</tspan>
+    </text>
+    <text x="405" y="170" font-size="20" fill="#64748b">
+      Trust, but verify. Gem vs Repo.
+    </text>
+  </g>
+</svg>

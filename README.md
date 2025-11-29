@@ -1,19 +1,10 @@
-# Sourcecode Verifier
-A Ruby gem that downloads published gems from RubyGems.org and compares them with source code from repositories like GitHub to verify integrity and detect differences.
+<p align="center">
+  <img src="./sourcecode-verifier-badge.svg" alt="sourcecode-verifier banner analyzing a ruby gem for source matches" width="100%">
+</p>
 
-## Features
+A Ruby tool that compares published gems from RubyGems.org and with source code from repositories like GitHub to verify integrity and detect hidden supply chain attacks.
 
-- Download gems from RubyGems.org and extract their contents
-- Automatically discover GitHub repositories for gems
-- Download source code from GitHub using version tags
-- Compare gem files with source code files using git diff
-- Generate detailed reports showing differences
-- Support for local file verification (optimized flow)
-- **CLI tool with smart caching** - Downloads stored locally for repeated analysis
-- **Intelligent cache management** - Warns when using cached content, organized by gem/version
-- Extensible adapter system for different source code platforms
-
-## Installation
+## How to use it for an entire application
 
 Add this line to your application's Gemfile:
 
@@ -25,27 +16,36 @@ And then execute:
 
     $ bundle install
 
-Or install it yourself as:
+Now you can check all the gems in your project with
+
+    $ bundle exec sourcecode-verifier --bundled
+
+When the command finishes it will write a report to an HTML file and attempt to open that report in your system browser.
+
+## How to use it for a single gem
+
+Install the gem
 
     $ gem install sourcecode_verifier
 
-## Usage
-
-### Command Line Interface (CLI)
-
-The gem includes a CLI tool for easy verification from the command line:
-
-#### Basic Usage
-
 ```bash
 # Verify any gem against its GitHub source
-./exe/sourcecode-verifier <gem_name> <version>
+sourcecode-verifier <gem_name> <version>
 
 # Example: verify the base64 gem
-./exe/sourcecode-verifier base64 0.2.0
+sourcecode-verifier base64 0.2.0
 ```
 
-#### CLI Options
+## Features
+
+- Download gems from RubyGems.org and extract their contents
+- Automatically discover GitHub repositories for gems
+- Download source code from GitHub using version tags
+- Compare gem files with source code files using git diff
+- Generate detailed reports showing differences
+- **Intelligent cache management** - Warns when using cached content, organized by gem/version
+
+#### Advanced CLI Options
 
 ```bash
 Usage: sourcecode-verifier [options] <gem_name> <version>
@@ -63,64 +63,6 @@ Examples:
   sourcecode-verifier --token $GITHUB_TOKEN private_gem 0.1.0
   sourcecode-verifier --verbose --cache-dir /tmp/cache rails 6.1.0
 ```
-
-#### CLI Output
-
-```bash
-$ ./exe/sourcecode-verifier --verbose base64 0.2.0
-Verifying base64 version 0.2.0...
-Downloading gem base64-0.2.0...
-Downloading source for base64-0.2.0...
-
-=== Sourcecode Verification Report ===
-Gem: base64 (0.2.0)
-Timestamp: 2025-11-29 11:23:10 -0500
-
-⚠ Differences found:
-  - 9 file(s) only in source
-  - 6 file(s) modified
-
-Files only in source (9):
-  - .github/dependabot.yml
-  - .github/workflows/test.yml
-  - .gitignore
-  - Gemfile
-  - Rakefile
-  - base64.gemspec
-  - bin/console
-  - bin/setup
-  - test/base64/test_base64.rb
-
-Modified files (6):
-  ~ lib/base64.rb
-  ~ README.md
-  [...]
-
-Detailed diff saved to: sourcecode_diff_20251129_112310.diff
-```
-
-#### Caching
-
-The CLI tool automatically caches downloads in the `./cache` directory:
-
-```
-./cache/
-├── gems/           # Extracted gem files
-│   └── base64-0.2.0/
-└── sources/        # GitHub source files
-    └── ruby_base64-0.2.0/
-```
-
-When content is already cached:
-
-```bash
-$ ./exe/sourcecode-verifier --verbose base64 0.2.0
-Verifying base64 version 0.2.0...
-⚠ Using cached gem content for base64-0.2.0
-⚠ Using cached source content for base64-0.2.0
-[... continues with verification ...]
-```
-
 #### Exit Codes
 
 - `0`: Files are identical
@@ -130,6 +72,8 @@ Verifying base64 version 0.2.0...
 - `4`: Unexpected error
 
 ### Ruby API
+
+If you are building this verification into a automated process you can use the Ruby API directly.
 
 #### Basic Verification
 
@@ -218,19 +162,6 @@ Currently supported source code platforms:
 
 - **GitHub**: Automatically discovers repositories and downloads source code by version tags
 
-Future adapters planned:
-- GitLab
-- Bitbucket
-- Generic Git repositories
-
-## How It Works
-
-1. **Download Gem**: Downloads the specified gem version from RubyGems.org and extracts its files
-2. **Discover Source**: Automatically finds the GitHub repository from gem metadata
-3. **Download Source**: Downloads the source code archive for the matching version tag
-4. **Compare**: Uses git diff to compare the extracted gem files with the source code
-5. **Report**: Generates a detailed report showing all differences
-
 ## Development
 
 After checking out the repo, run:
@@ -242,7 +173,7 @@ bundle install
 To run tests:
 
 ```bash
-rspec
+bundle exec rspec
 ```
 
 ## Contributing
