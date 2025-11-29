@@ -10,6 +10,11 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  # Disable colorization during tests
+  config.before(:suite) do
+    SourcecodeVerifier::Colorizer.enabled = false
+  end
+
   # Configure test tags
   config.filter_run_excluding :integration unless ENV['INTEGRATION_TESTS'] == 'true'
   
