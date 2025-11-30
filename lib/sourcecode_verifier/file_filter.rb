@@ -10,30 +10,25 @@ module SourcecodeVerifier
       
       # CI/CD and GitHub
       '.github/',
-      '.gitlab-ci.yml',
-      '.travis.yml',
       '.circleci/',
-      'appveyor.yml',
       
-      # Development tools
+      # Development tools (case insensitive)
       'Gemfile',
+      'gemfile',
+      'GEMFILE',
       'Gemfile.lock',
+      'gemfile.lock',
+      'GEMFILE.LOCK',
       'Rakefile',
       'rakefile',
+      'RAKEFILE',
       'Guardfile',
+      'guardfile',
+      'GUARDFILE',
       '.rspec',
-      '.rubocop.yml',
-      '.reek.yml',
       
-      # Documentation and project files
-      'CHANGELOG.md',
-      'CHANGELOG.txt',
+      # Documentation and project files  
       'CHANGELOG.rst',
-      'CONTRIBUTING.md',
-      'CONTRIBUTING.txt',
-      'CODE_OF_CONDUCT.md',
-      'SECURITY.md',
-      'RELEASING.md',
       
       # Gem specification (but be careful - some gems include their main gemspec)
       # Only exclude clearly development-specific gemspec files
@@ -86,8 +81,7 @@ module SourcecodeVerifier
       
       # Configuration files
       '.env',
-      '.env.*',
-      'docker-compose.yml',
+      '.env.*', 
       'Dockerfile',
       '.dockerignore',
       'Vagrantfile',
@@ -99,7 +93,13 @@ module SourcecodeVerifier
       
       # Bundler gemfiles for testing different dependency versions
       'gemfiles/',
-      'gemfiles/**/*'
+      'gemfiles/**/*',
+      
+      # Common file extensions that are typically documentation/config (case insensitive)
+      '*.md',
+      '*.txt', 
+      '*.yml',
+      '*.yaml'
     ].freeze
     
     attr_reader :source_ignore_patterns, :gem_ignore_patterns, :display_ignore_patterns
@@ -150,7 +150,12 @@ module SourcecodeVerifier
         elsif pattern.include?('*')
           # Glob pattern - convert to regex
           regex_pattern = pattern.gsub(/\*+/, '.*')
-          /^#{regex_pattern}$/
+          # Make file extension patterns case insensitive
+          if pattern.start_with?('*.') 
+            /^#{regex_pattern}$/i
+          else
+            /^#{regex_pattern}$/
+          end
         else
           # Exact match pattern
           /^#{Regexp.escape(pattern)}$/

@@ -102,7 +102,7 @@ RSpec.describe SourcecodeVerifier::Report do
     let(:report) { described_class.new(different_diff_result) }
 
     it 'returns gem only files' do
-      expect(report.gem_only_files).to eq(['gem_only.rb', 'another_gem_file.txt'])
+      expect(report.gem_only_files).to eq(['gem_only.rb'])
     end
 
     it 'returns source only files' do
@@ -110,7 +110,7 @@ RSpec.describe SourcecodeVerifier::Report do
     end
 
     it 'returns modified files' do
-      expect(report.modified_files).to eq(['modified_file.rb', 'config.yml'])
+      expect(report.modified_files).to eq(['modified_file.rb'])
     end
 
     it 'returns empty arrays when diff result does not have file lists' do
@@ -133,7 +133,7 @@ RSpec.describe SourcecodeVerifier::Report do
       expect(hash[:version]).to eq(version)
       expect(hash[:timestamp]).to be_a(String)
       expect(hash[:identical]).to be false
-      expect(hash[:summary]).to eq("⚠ Differences found:\n  - 2 file(s) only in gem\n  - 1 file(s) only in source\n  - 2 file(s) modified")
+      expect(hash[:summary]).to eq("⚠ Differences found:\n  - 1 file(s) only in gem\n  - 1 file(s) only in source\n  - 1 file(s) modified")
       expect(hash[:diff_file]).to eq('/path/to/diff.diff')
     end
 
@@ -141,19 +141,19 @@ RSpec.describe SourcecodeVerifier::Report do
       hash = report.to_hash
       stats = hash[:statistics]
 
-      expect(stats[:gem_only_files]).to eq(2)
+      expect(stats[:gem_only_files]).to eq(1)
       expect(stats[:source_only_files]).to eq(1)
-      expect(stats[:modified_files]).to eq(2)
-      expect(stats[:total_differences]).to eq(5)
+      expect(stats[:modified_files]).to eq(1)
+      expect(stats[:total_differences]).to eq(3)
     end
 
     it 'includes file lists' do
       hash = report.to_hash
       files = hash[:files]
 
-      expect(files[:gem_only]).to eq(['gem_only.rb', 'another_gem_file.txt'])
+      expect(files[:gem_only]).to eq(['gem_only.rb'])
       expect(files[:source_only]).to eq(['source_only.rb'])
-      expect(files[:modified]).to eq(['modified_file.rb', 'config.yml'])
+      expect(files[:modified]).to eq(['modified_file.rb'])
     end
   end
 
@@ -217,14 +217,13 @@ RSpec.describe SourcecodeVerifier::Report do
         output = report.to_s
 
         expect(output).to include('Files only in gem')
-        expect(output).to include('another_gem_file.txt')
+        expect(output).to include('gem_only.rb')
 
         expect(output).to include('Files only in source')
         expect(output).to include('source_only.rb')
 
         expect(output).to include('Modified files')
         expect(output).to include('modified_file.rb')
-        expect(output).to include('config.yml')
       end
 
       it 'includes diff file path when file exists' do
