@@ -158,6 +158,12 @@ module SourcecodeVerifier
                                                                 <i class="fas fa-code"></i> View Diff
                                                             </button>
                                                         <% end %>
+                                                        <% if result[:status] == 'differences' && has_file_differences?(result) %>
+                                                            <button class="btn btn-sm btn-outline-info collapse-toggle"
+                                                                    onclick="toggleFileDetails('files-<%= index %>')">
+                                                                <i class="fas fa-list"></i> File Details
+                                                            </button>
+                                                        <% end %>
                                                         <% if result[:error] %>
                                                             <button class="btn btn-sm btn-outline-secondary collapse-toggle"
                                                                     onclick="toggleError('error-<%= index %>')">
@@ -185,6 +191,79 @@ module SourcecodeVerifier
                                                     <div id="diff-<%= index %>" class="collapse mt-3">
                                                         <div class="diff-content border rounded p-2">
                                                             <pre><code class="language-diff"><%= CGI.escapeHTML(result[:diff_content]) %></code></pre>
+                                                        </div>
+                                                    </div>
+                                                <% end %>
+
+                                                <% if result[:status] == 'differences' && has_file_differences?(result) %>
+                                                    <div id="files-<%= index %>" class="collapse mt-3">
+                                                        <div class="card">
+                                                            <div class="card-body">
+                                                                <h6 class="card-title">File Analysis Details</h6>
+                                                                
+                                                                <% if result[:gem_only_files] && !result[:gem_only_files].empty? %>
+                                                                    <div class="mb-3">
+                                                                        <h6 class="text-success">
+                                                                            <i class="fas fa-plus-circle"></i> Files only in gem (<%= result[:gem_only_files].size %>)
+                                                                        </h6>
+                                                                        <small class="text-muted mb-2 d-block">
+                                                                            These files are packaged in the published gem but not present in the source repository.
+                                                                            This could indicate build artifacts, generated files, or missing source files.
+                                                                        </small>
+                                                                        <div class="bg-light rounded p-2">
+                                                                            <ul class="list-unstyled mb-0 small">
+                                                                                <% result[:gem_only_files].each do |file| %>
+                                                                                    <li class="text-success">
+                                                                                        <i class="fas fa-plus"></i> <%= CGI.escapeHTML(file) %>
+                                                                                    </li>
+                                                                                <% end %>
+                                                                            </ul>
+                                                                        </div>
+                                                                    </div>
+                                                                <% end %>
+
+                                                                <% if result[:source_only_files] && !result[:source_only_files].empty? %>
+                                                                    <div class="mb-3">
+                                                                        <h6 class="text-danger">
+                                                                            <i class="fas fa-minus-circle"></i> Files only in source (<%= result[:source_only_files].size %>)
+                                                                        </h6>
+                                                                        <small class="text-muted mb-2 d-block">
+                                                                            These files are present in the source repository but not packaged in the published gem.
+                                                                            This usually indicates development files, documentation, or files excluded from the gem build.
+                                                                        </small>
+                                                                        <div class="bg-light rounded p-2">
+                                                                            <ul class="list-unstyled mb-0 small">
+                                                                                <% result[:source_only_files].each do |file| %>
+                                                                                    <li class="text-danger">
+                                                                                        <i class="fas fa-minus"></i> <%= CGI.escapeHTML(file) %>
+                                                                                    </li>
+                                                                                <% end %>
+                                                                            </ul>
+                                                                        </div>
+                                                                    </div>
+                                                                <% end %>
+
+                                                                <% if result[:modified_files] && !result[:modified_files].empty? %>
+                                                                    <div class="mb-3">
+                                                                        <h6 class="text-warning">
+                                                                            <i class="fas fa-edit"></i> Modified files (<%= result[:modified_files].size %>)
+                                                                        </h6>
+                                                                        <small class="text-muted mb-2 d-block">
+                                                                            These files exist in both gem and source but have content differences.
+                                                                            This indicates potential code changes, build modifications, or version mismatches.
+                                                                        </small>
+                                                                        <div class="bg-light rounded p-2">
+                                                                            <ul class="list-unstyled mb-0 small">
+                                                                                <% result[:modified_files].each do |file| %>
+                                                                                    <li class="text-warning">
+                                                                                        <i class="fas fa-edit"></i> <%= CGI.escapeHTML(file) %>
+                                                                                    </li>
+                                                                                <% end %>
+                                                                            </ul>
+                                                                        </div>
+                                                                    </div>
+                                                                <% end %>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 <% end %>
@@ -226,6 +305,19 @@ module SourcecodeVerifier
                     } else {
                         element.classList.add('show');
                         button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Hide Error';
+                    }
+                }
+
+                function toggleFileDetails(id) {
+                    const element = document.getElementById(id);
+                    const button = event.target.closest('button');
+
+                    if (element.classList.contains('show')) {
+                        element.classList.remove('show');
+                        button.innerHTML = '<i class="fas fa-list"></i> File Details';
+                    } else {
+                        element.classList.add('show');
+                        button.innerHTML = '<i class="fas fa-list"></i> Hide Details';
                     }
                 }
 
@@ -283,6 +375,12 @@ module SourcecodeVerifier
       when 'errored' then 'fas fa-times-circle'
       else 'fas fa-circle'
       end
+    end
+
+    def has_file_differences?(result)
+      (result[:gem_only_files] && !result[:gem_only_files].empty?) ||
+      (result[:source_only_files] && !result[:source_only_files].empty?) ||
+      (result[:modified_files] && !result[:modified_files].empty?)
     end
   end
 end
