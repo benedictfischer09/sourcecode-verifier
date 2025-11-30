@@ -40,8 +40,32 @@ module SourcecodeVerifier
           
           if github_url
             SourcecodeVerifier.logger.debug "Found GitHub URL: #{github_url}"
-            extract_repo_from_url(github_url)
+            return extract_repo_from_url(github_url)
           else
+            SourcecodeVerifier.logger.debug "No GitHub URL found in gem metadata, trying fallback search methods..."
+            
+            # Try GitHub search first
+            begin
+              github_repo = search_github_repositories(gem_name)
+              if github_repo
+                SourcecodeVerifier.logger.debug "Found repository via GitHub search: #{github_repo}"
+                return github_repo
+              end
+            rescue => e
+              SourcecodeVerifier.logger.debug "GitHub search failed: #{e.message}"
+            end
+            
+            # Try Google search as final fallback
+            begin
+              github_repo = search_via_google(gem_name)
+              if github_repo
+                SourcecodeVerifier.logger.debug "Found repository via Google search: #{github_repo}"
+                return github_repo
+              end
+            rescue => e
+              SourcecodeVerifier.logger.debug "Google search failed: #{e.message}"
+            end
+            
             raise Error, "Could not discover GitHub repository for gem '#{gem_name}'. Please provide github_repo option."
           end
         else
@@ -223,6 +247,128 @@ module SourcecodeVerifier
         end
         
         target_dir
+      end
+
+      def search_github_repositories(gem_name)
+        # Search GitHub repositories using the search API
+        # This doesn't require authentication for basic searches
+        search_url = "https://api.github.com/search/repositories"
+        
+        # Try multiple search strategies
+        search_queries = [
+          "#{gem_name} language:ruby",                    # Most specific
+          "ruby #{gem_name}",                            # More general
+          gem_name,                                      # Broadest
+          "#{gem_name.gsub(/[-_]/, ' ')} language:ruby"  # Handle dashed/underscored names
+        ]
+        
+        search_queries.each do |query|
+          SourcecodeVerifier.logger.debug "Searching GitHub with query: #{query}"
+          
+          response = HTTParty.get(search_url, 
+            query: { q: query, sort: 'relevance', per_page: 10 },
+            headers: { 'User-Agent' => 'sourcecode-verifier' }
+          )
+          
+          if response.success?
+            results = JSON.parse(response.body)
+            
+            if results['items'] && results['items'].any?
+              # Look for exact name matches first
+              exact_match = results['items'].find { |repo| 
+                repo_name = repo['name'].downcase
+                gem_name_normalized = gem_name.downcase
+                
+                # Check various name patterns
+                repo_name == gem_name_normalized ||
+                repo_name == gem_name_normalized.gsub(/[-_]/, '') ||
+                repo_name.gsub(/[-_]/, '') == gem_name_normalized.gsub(/[-_]/, '') ||
+                repo_name.include?(gem_name_normalized) ||
+                gem_name_normalized.include?(repo_name)
+              }
+              
+              if exact_match
+                return exact_match['full_name']
+              end
+              
+              # If no exact match, try the first relevant result
+              # but only if it has good indicators (Ruby language, gem-like name)
+              first_result = results['items'].first
+              if first_result['language'] == 'Ruby' || 
+                 first_result['description']&.downcase&.include?('gem') ||
+                 first_result['description']&.downcase&.include?('ruby')
+                
+                SourcecodeVerifier.logger.debug "Using best guess from search: #{first_result['full_name']}"
+                return first_result['full_name']
+              end
+            end
+          else
+            SourcecodeVerifier.logger.debug "GitHub search API returned error: #{response.code}"
+            # Don't raise error, try next query or next search method
+          end
+        end
+        
+        nil # No repository found
+      end
+
+      def search_via_google(gem_name)
+        # Use Google search to find GitHub repositories
+        # This is a last resort fallback method
+        search_query = "#{gem_name} ruby gem site:github.com"
+        google_url = "https://www.google.com/search"
+        
+        SourcecodeVerifier.logger.debug "Searching Google for: #{search_query}"
+        
+        response = HTTParty.get(google_url,
+          query: { q: search_query, num: 10 },
+          headers: { 
+            'User-Agent' => 'Mozilla/5.0 (compatible; sourcecode-verifier)'
+          }
+        )
+        
+        if response.success?
+          html_body = response.body
+          
+          # Extract GitHub URLs from search results using regex
+          # Look for github.com URLs in the HTML
+          github_urls = html_body.scan(%r{https?://github\.com/([^/\s"]+/[^/\s"]+)}).map(&:first)
+          
+          github_urls.each do |repo_path|
+            # Clean up the repo path
+            repo_path = repo_path.gsub(/[#?].*$/, '') # Remove fragments/queries
+            repo_path = repo_path.sub(/\.git$/, '')   # Remove .git suffix
+            
+            # Skip obviously non-repository paths
+            next if repo_path.include?('/releases') || 
+                   repo_path.include?('/issues') || 
+                   repo_path.include?('/wiki') ||
+                   repo_path.include?('/tree') ||
+                   repo_path.include?('/blob')
+            
+            # Simple relevance check - prefer repos with gem name in them
+            repo_name = repo_path.split('/').last.downcase
+            gem_name_normalized = gem_name.downcase
+            
+            if repo_name.include?(gem_name_normalized) || 
+               gem_name_normalized.include?(repo_name) ||
+               repo_name.gsub(/[-_]/, '') == gem_name_normalized.gsub(/[-_]/, '')
+              
+              SourcecodeVerifier.logger.debug "Found potential match via Google: #{repo_path}"
+              return repo_path
+            end
+          end
+          
+          # If no exact match found, return the first GitHub repo found (if any)
+          if github_urls.any?
+            first_repo = github_urls.first
+            SourcecodeVerifier.logger.debug "Using first Google result as fallback: #{first_repo}"
+            return first_repo
+          end
+        else
+          SourcecodeVerifier.logger.debug "Google search failed: #{response.code}"
+        end
+        
+        nil # No repository found
       end
     end
   end

@@ -139,6 +139,14 @@ RSpec.describe SourcecodeVerifier::Adapters::Github do
         before do
           stub_request(:get, "https://rubygems.org/api/v1/gems/#{gem_name}.json")
             .to_return(status: 200, body: rubygems_response)
+          
+          # Stub GitHub search API to return no results (with any query params)
+          stub_request(:get, /api\.github\.com\/search\/repositories/)
+            .to_return(status: 200, body: { "items" => [] }.to_json)
+          
+          # Stub Google search to return no results (with any query params)
+          stub_request(:get, /google\.com\/search/)
+            .to_return(status: 200, body: "<html><body>No results</body></html>")
         end
 
         it 'raises an error' do
