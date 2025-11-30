@@ -33,6 +33,7 @@ module SourcecodeVerifier
       'CONTRIBUTING.txt',
       'CODE_OF_CONDUCT.md',
       'SECURITY.md',
+      'RELEASING.md',
       
       # Gem specification (but be careful - some gems include their main gemspec)
       # Only exclude clearly development-specific gemspec files
@@ -89,14 +90,24 @@ module SourcecodeVerifier
       'docker-compose.yml',
       'Dockerfile',
       '.dockerignore',
-      'Vagrantfile'
+      'Vagrantfile',
+      
+      # Additional development files often not included in gems
+      '.simplecov',
+      '.yardopts',
+      '.yard/**/*',
+      
+      # Bundler gemfiles for testing different dependency versions
+      'gemfiles/',
+      'gemfiles/**/*'
     ].freeze
     
-    attr_reader :source_ignore_patterns, :gem_ignore_patterns
+    attr_reader :source_ignore_patterns, :gem_ignore_patterns, :display_ignore_patterns
 
     def initialize(options = {})
       @source_ignore_patterns = build_patterns(DEFAULT_SOURCE_IGNORE_PATTERNS, options[:ignore_source])
       @gem_ignore_patterns = build_patterns(['.git/'], options[:ignore_gem])
+      @display_ignore_patterns = build_patterns(DEFAULT_SOURCE_IGNORE_PATTERNS, options[:ignore_display])
     end
 
     def should_ignore_source_file?(file_path)
@@ -113,6 +124,16 @@ module SourcecodeVerifier
 
     def filter_gem_files(file_list)
       file_list.reject { |file| should_ignore_gem_file?(file) }
+    end
+
+    def filter_files_for_display(file_list)
+      file_list.reject { |file| should_ignore_for_display?(file) }
+    end
+
+    def should_ignore_for_display?(file_path)
+      # Apply same filtering as source files, plus some gem-specific patterns
+      # This creates consistent filtering for display purposes
+      matches_any_pattern?(file_path, display_ignore_patterns)
     end
 
     private

@@ -1,16 +1,17 @@
 module SourcecodeVerifier
   class Report
-    attr_reader :diff_result, :gem_name, :version, :timestamp
+    attr_reader :diff_result, :gem_name, :version, :timestamp, :file_filter
 
-    def initialize(diff_result, gem_name = nil, version = nil)
+    def initialize(diff_result, gem_name = nil, version = nil, options = {})
       @diff_result = diff_result
       @gem_name = gem_name
       @version = version
       @timestamp = Time.now
+      @file_filter = FileFilter.new(options)
     end
 
     def identical?
-      diff_result[:identical]
+      gem_only_files.size == 0 && source_only_files.size == 0 && modified_files.size == 0
     end
 
     def diff_file_path
@@ -23,19 +24,33 @@ module SourcecodeVerifier
     end
 
     def summary
-      diff_result[:summary]
+      # Generate a new summary based on filtered file counts
+      gem_only = gem_only_files.size
+      source_only = source_only_files.size
+      modified = modified_files.size
+      
+      # If there are no filtered differences, consider it identical
+      if gem_only == 0 && source_only == 0 && modified == 0
+        "✓ Gem and source code are identical"
+      else
+        summary = "⚠ Differences found:"
+        summary += "\n  - #{gem_only} file(s) only in gem" if gem_only > 0
+        summary += "\n  - #{source_only} file(s) only in source" if source_only > 0  
+        summary += "\n  - #{modified} file(s) modified" if modified > 0
+        summary
+      end
     end
 
     def gem_only_files
-      diff_result[:gem_only_files] || []
+      file_filter.filter_files_for_display(diff_result[:gem_only_files] || [])
     end
 
     def source_only_files
-      diff_result[:source_only_files] || []
+      file_filter.filter_files_for_display(diff_result[:source_only_files] || [])
     end
 
     def modified_files
-      diff_result[:modified_files] || []
+      file_filter.filter_files_for_display(diff_result[:modified_files] || [])
     end
 
     def to_hash

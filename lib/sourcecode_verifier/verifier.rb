@@ -162,7 +162,7 @@ module SourcecodeVerifier
       diff_engine = DiffEngine.new(gem_dir, source_dir, options)
       diff_result = diff_engine.compare
 
-      Report.new(diff_result, gem_name, version)
+      Report.new(diff_result, gem_name, version, options)
     end
   end
 end

@@ -133,7 +133,7 @@ RSpec.describe SourcecodeVerifier::Report do
       expect(hash[:version]).to eq(version)
       expect(hash[:timestamp]).to be_a(String)
       expect(hash[:identical]).to be false
-      expect(hash[:summary]).to eq('⚠ Differences found between gem and source code')
+      expect(hash[:summary]).to eq("⚠ Differences found:\n  - 2 file(s) only in gem\n  - 1 file(s) only in source\n  - 2 file(s) modified")
       expect(hash[:diff_file]).to eq('/path/to/diff.diff')
     end
 
