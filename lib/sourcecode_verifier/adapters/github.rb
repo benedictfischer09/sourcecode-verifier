@@ -16,6 +16,7 @@ module SourcecodeVerifier
         @gem_name = gem_name
         @options = options
         @github_repo = options[:github_repo] || discover_github_repo
+        @subdirectory = nil # Will be set if this is a monorepo subdirectory
       end
 
       def download_and_extract(target_dir, version)
@@ -121,6 +122,13 @@ module SourcecodeVerifier
           owner = match[1]
           repo = match[2]
           
+          # Check for subdirectory paths (e.g., /tree/branch/subdirectory)
+          if url.match(%r{/tree/[^/]+/(.+)$})
+            subdirectory_match = url.match(%r{/tree/[^/]+/(.+)$})
+            @subdirectory = subdirectory_match[1] if subdirectory_match
+            SourcecodeVerifier.logger.debug "Detected monorepo subdirectory: #{@subdirectory}"
+          end
+          
           # Clean up paths and fragments, but preserve valid repo names
           repo = repo.split(/[#?]/).first           # Remove fragments/query params
           repo = repo.sub(%r{/(tree|blob|releases|issues).*$}, '') # Remove GitHub path suffixes
@@ -221,6 +229,22 @@ module SourcecodeVerifier
               # Remove the top-level directory from the path
               relative_path = entry.name.sub(/^#{Regexp.escape(top_level_dir)}\//, '')
               next if relative_path.empty?
+              
+              # If this is a monorepo subdirectory, only extract files from that subdirectory
+              if @subdirectory
+                subdirectory_prefix = "#{@subdirectory}/"
+                if relative_path.start_with?(subdirectory_prefix)
+                  # Remove the subdirectory prefix to get the final relative path
+                  relative_path = relative_path.sub(/^#{Regexp.escape(subdirectory_prefix)}/, '')
+                elsif relative_path == @subdirectory
+                  # Handle the subdirectory itself (if it's a file)
+                  relative_path = ''
+                else
+                  # Skip files not in the target subdirectory
+                  next
+                end
+                next if relative_path.empty?
+              end
               
               target_path = File.join(target_dir, relative_path)
               

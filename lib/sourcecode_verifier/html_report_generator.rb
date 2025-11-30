@@ -203,18 +203,19 @@ module SourcecodeVerifier
                                                                 
                                                                 <% if result[:gem_only_files] && !result[:gem_only_files].empty? %>
                                                                     <div class="mb-3">
-                                                                        <h6 class="text-success">
-                                                                            <i class="fas fa-plus-circle"></i> Files only in gem (<%= result[:gem_only_files].size %>)
+                                                                        <h6 class="text-warning">
+                                                                            <i class="fas fa-exclamation-triangle"></i> Files only in gem (<%= result[:gem_only_files].size %>)
                                                                         </h6>
                                                                         <small class="text-muted mb-2 d-block">
                                                                             These files are packaged in the published gem but not present in the source repository.
-                                                                            This could indicate build artifacts, generated files, or missing source files.
+                                                                            <strong>Security concern:</strong> Unknown origin of these files - could be build artifacts, generated files, or potentially malicious additions.
+                                                                            Investigate each file to ensure it's legitimate.
                                                                         </small>
                                                                         <div class="bg-light rounded p-2">
                                                                             <ul class="list-unstyled mb-0 small">
                                                                                 <% result[:gem_only_files].each do |file| %>
-                                                                                    <li class="text-success">
-                                                                                        <i class="fas fa-plus"></i> <%= CGI.escapeHTML(file) %>
+                                                                                    <li class="text-warning">
+                                                                                        <i class="fas fa-exclamation-triangle"></i> <%= CGI.escapeHTML(file) %>
                                                                                     </li>
                                                                                 <% end %>
                                                                             </ul>
@@ -224,18 +225,19 @@ module SourcecodeVerifier
 
                                                                 <% if result[:source_only_files] && !result[:source_only_files].empty? %>
                                                                     <div class="mb-3">
-                                                                        <h6 class="text-danger">
-                                                                            <i class="fas fa-minus-circle"></i> Files only in source (<%= result[:source_only_files].size %>)
+                                                                        <h6 class="text-muted">
+                                                                            <i class="fas fa-info-circle"></i> Files only in source (<%= result[:source_only_files].size %>)
                                                                         </h6>
                                                                         <small class="text-muted mb-2 d-block">
                                                                             These files are present in the source repository but not packaged in the published gem.
-                                                                            This usually indicates development files, documentation, or files excluded from the gem build.
+                                                                            This is normal and expected - these are typically development files, tests, documentation, or build configurations.
+                                                                            <strong>No security concern.</strong>
                                                                         </small>
                                                                         <div class="bg-light rounded p-2">
                                                                             <ul class="list-unstyled mb-0 small">
                                                                                 <% result[:source_only_files].each do |file| %>
-                                                                                    <li class="text-danger">
-                                                                                        <i class="fas fa-minus"></i> <%= CGI.escapeHTML(file) %>
+                                                                                    <li class="text-muted">
+                                                                                        <i class="fas fa-info"></i> <%= CGI.escapeHTML(file) %>
                                                                                     </li>
                                                                                 <% end %>
                                                                             </ul>
@@ -245,18 +247,19 @@ module SourcecodeVerifier
 
                                                                 <% if result[:modified_files] && !result[:modified_files].empty? %>
                                                                     <div class="mb-3">
-                                                                        <h6 class="text-warning">
-                                                                            <i class="fas fa-edit"></i> Modified files (<%= result[:modified_files].size %>)
+                                                                        <h6 class="text-danger">
+                                                                            <i class="fas fa-times-circle"></i> Modified files (<%= result[:modified_files].size %>)
                                                                         </h6>
                                                                         <small class="text-muted mb-2 d-block">
                                                                             These files exist in both gem and source but have content differences.
-                                                                            This indicates potential code changes, build modifications, or version mismatches.
+                                                                            <strong>Security risk:</strong> The gem contains different code than the source repository.
+                                                                            This could indicate unauthorized modifications, build issues, or version mismatches.
                                                                         </small>
                                                                         <div class="bg-light rounded p-2">
                                                                             <ul class="list-unstyled mb-0 small">
                                                                                 <% result[:modified_files].each do |file| %>
-                                                                                    <li class="text-warning">
-                                                                                        <i class="fas fa-edit"></i> <%= CGI.escapeHTML(file) %>
+                                                                                    <li class="text-danger">
+                                                                                        <i class="fas fa-times-circle"></i> <%= CGI.escapeHTML(file) %>
                                                                                     </li>
                                                                                 <% end %>
                                                                             </ul>

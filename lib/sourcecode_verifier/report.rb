@@ -11,7 +11,9 @@ module SourcecodeVerifier
     end
 
     def identical?
-      gem_only_files.size == 0 && source_only_files.size == 0 && modified_files.size == 0
+      # Gem is considered verified if all gem files match source files
+      # Files only in source are ignored (expected development files)
+      gem_only_files.size == 0 && modified_files.size == 0
     end
 
     def diff_file_path
@@ -25,18 +27,21 @@ module SourcecodeVerifier
 
     def summary
       # Generate a new summary based on filtered file counts
+      # Focus on gem integrity: only care about files in gem that don't match source
       gem_only = gem_only_files.size
       source_only = source_only_files.size
       modified = modified_files.size
       
-      # If there are no filtered differences, consider it identical
-      if gem_only == 0 && source_only == 0 && modified == 0
-        "✓ Gem and source code are identical"
+      # Files only in source are expected development files and not a problem
+      security_issues = gem_only + modified
+      
+      if security_issues == 0
+        "✓ Gem contents verified against source code"
       else
-        summary = "⚠ Differences found:"
-        summary += "\n  - #{gem_only} file(s) only in gem" if gem_only > 0
-        summary += "\n  - #{source_only} file(s) only in source" if source_only > 0  
-        summary += "\n  - #{modified} file(s) modified" if modified > 0
+        summary = "⚠ Gem integrity issues found:"
+        summary += "\n  - #{gem_only} file(s) only in gem (unexpected files)" if gem_only > 0
+        summary += "\n  - #{modified} file(s) modified from source" if modified > 0
+        # Note: We don't report source-only files as they're expected development files
         summary
       end
     end

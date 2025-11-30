@@ -26,7 +26,7 @@ module SourcecodeVerifier
         
         
         {
-          identical: diff_file_empty?,
+          identical: gem_contents_verified?,
           diff_file: @diff_file,
           gem_only_files: files_only_in_clean_gem,
           source_only_files: files_only_in_clean_source,
@@ -205,22 +205,31 @@ module SourcecodeVerifier
       end
     end
 
+    def gem_contents_verified?
+      # Gem is considered verified if all gem files match source files
+      # Files only in source are ignored (expected development files)
+      gem_only = files_only_in_clean_gem.size
+      modified = get_modified_files.size
+      
+      gem_only == 0 && modified == 0
+    end
+
     def generate_summary
       gem_only = files_only_in_clean_gem.size
       source_only = files_only_in_clean_source.size
       modified = get_modified_files.size
       
-      # If the diff file is empty, there are no content differences in shared files
-      # This means any differences are just packaging/development files
-      if diff_file_empty?
-        "✓ Gem and source code are identical"
-      elsif gem_only == 0 && source_only == 0 && modified == 0
-        "✓ Gem and source code are identical"
+      # Focus on gem integrity: only care about files in gem that don't match source
+      # Files only in source (development files) are expected and not a problem
+      security_issues = gem_only + modified
+      
+      if security_issues == 0
+        "✓ Gem contents verified against source code"
       else
-        summary = "⚠ Differences found:"
-        summary += "\n  - #{gem_only} file(s) only in gem" if gem_only > 0
-        summary += "\n  - #{source_only} file(s) only in source" if source_only > 0  
-        summary += "\n  - #{modified} file(s) modified" if modified > 0
+        summary = "⚠ Gem integrity issues found:"
+        summary += "\n  - #{gem_only} file(s) only in gem (unexpected files)" if gem_only > 0
+        summary += "\n  - #{modified} file(s) modified from source" if modified > 0
+        # Note: We don't report source-only files as they're expected development files
         summary
       end
     end

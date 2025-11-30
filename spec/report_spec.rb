@@ -94,7 +94,7 @@ RSpec.describe SourcecodeVerifier::Report do
   describe '#summary' do
     it 'returns the summary from diff result' do
       report = described_class.new(identical_diff_result)
-      expect(report.summary).to eq('✓ Gem and source code are identical')
+      expect(report.summary).to eq('✓ Gem contents verified against source code')
     end
   end
 
@@ -133,7 +133,7 @@ RSpec.describe SourcecodeVerifier::Report do
       expect(hash[:version]).to eq(version)
       expect(hash[:timestamp]).to be_a(String)
       expect(hash[:identical]).to be false
-      expect(hash[:summary]).to eq("⚠ Differences found:\n  - 1 file(s) only in gem\n  - 1 file(s) only in source\n  - 1 file(s) modified")
+      expect(hash[:summary]).to eq("⚠ Gem integrity issues found:\n  - 1 file(s) only in gem (unexpected files)\n  - 1 file(s) modified from source")
       expect(hash[:diff_file]).to eq('/path/to/diff.diff')
     end
 
@@ -192,7 +192,7 @@ RSpec.describe SourcecodeVerifier::Report do
 
       it 'includes summary' do
         output = report.to_s
-        expect(output).to include('✓ Gem and source code are identical')
+        expect(output).to include('✓ Gem contents verified against source code')
       end
     end
 
@@ -206,7 +206,7 @@ RSpec.describe SourcecodeVerifier::Report do
 
       it 'still includes summary' do
         output = report.to_s
-        expect(output).to include('✓ Gem and source code are identical')
+        expect(output).to include('✓ Gem contents verified against source code')
       end
     end
 
