@@ -12,19 +12,11 @@ module SourcecodeVerifier
       '.github/',
       '.circleci/',
       
-      # Development tools (case insensitive)
+      # Development tools
       'Gemfile',
-      'gemfile',
-      'GEMFILE',
-      'Gemfile.lock',
-      'gemfile.lock',
-      'GEMFILE.LOCK',
+      'Gemfile.lock', 
       'Rakefile',
-      'rakefile',
-      'RAKEFILE',
       'Guardfile',
-      'guardfile',
-      'GUARDFILE',
       '.rspec',
       
       # Documentation and project files  
@@ -99,7 +91,11 @@ module SourcecodeVerifier
       '*.md',
       '*.txt', 
       '*.yml',
-      '*.yaml'
+      '*.yaml',
+      
+      # License files  
+      '*license*',
+      '*licence*'
     ].freeze
     
     attr_reader :source_ignore_patterns, :gem_ignore_patterns, :display_ignore_patterns
@@ -145,20 +141,15 @@ module SourcecodeVerifier
       # Convert glob patterns to regex patterns
       patterns.map do |pattern|
         if pattern.end_with?('/')
-          # Directory pattern - match anything starting with this path
-          /^#{Regexp.escape(pattern.chomp('/'))}(\/|$)/
+          # Directory pattern - match anything starting with this path (case insensitive)
+          /^#{Regexp.escape(pattern.chomp('/'))}(\/|$)/i
         elsif pattern.include?('*')
-          # Glob pattern - convert to regex
+          # Glob pattern - convert to regex (all patterns are case insensitive)
           regex_pattern = pattern.gsub(/\*+/, '.*')
-          # Make file extension patterns case insensitive
-          if pattern.start_with?('*.') 
-            /^#{regex_pattern}$/i
-          else
-            /^#{regex_pattern}$/
-          end
+          /^#{regex_pattern}$/i
         else
-          # Exact match pattern
-          /^#{Regexp.escape(pattern)}$/
+          # Exact match pattern (case insensitive)
+          /^#{Regexp.escape(pattern)}$/i
         end
       end
     end
