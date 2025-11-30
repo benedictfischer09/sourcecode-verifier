@@ -67,6 +67,7 @@ GEM
     tmpdir (0.3.1)
       fileutils
     uri (1.1.1)
+    vernier (1.9.0)
     webmock (3.26.1)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
@@ -82,6 +83,7 @@ DEPENDENCIES
   rspec (~> 3.0)
   rspec_junit_formatter (~> 0.6)
   sourcecode_verifier!
+  vernier (~> 1.0)
   webmock (~> 3.0)
 
 BUNDLED WITH

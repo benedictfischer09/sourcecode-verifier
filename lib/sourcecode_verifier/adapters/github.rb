@@ -10,13 +10,13 @@ module SourcecodeVerifier
     class Github
       include HTTParty
 
-      attr_reader :gem_name, :options, :github_repo
+      attr_reader :gem_name, :options, :github_repo, :subdirectory
 
       def initialize(gem_name, options = {})
         @gem_name = gem_name
         @options = options
-        @github_repo = options[:github_repo] || discover_github_repo
         @subdirectory = nil # Will be set if this is a monorepo subdirectory
+        @github_repo = options[:github_repo] || discover_github_repo
       end
 
       def download_and_extract(target_dir, version)
@@ -117,17 +117,18 @@ module SourcecodeVerifier
         # Extract owner/repo from various GitHub URL formats
         # Handle: https://github.com/owner/repo, git://github.com/owner/repo.git, 
         #         https://github.com/owner/repo/tree/branch, etc.
+        
+        # Check for subdirectory paths FIRST before any URL manipulation
+        if url.match(%r{/tree/[^/]+/(.+)$})
+          subdirectory_match = url.match(%r{/tree/[^/]+/(.+)$})
+          @subdirectory = subdirectory_match[1] if subdirectory_match
+          SourcecodeVerifier.logger.debug "Detected monorepo subdirectory: #{@subdirectory}"
+        end
+        
         match = url.match(%r{github\.com[/:]([^/]+)/([^/\s]+)})
         if match
           owner = match[1]
           repo = match[2]
-          
-          # Check for subdirectory paths (e.g., /tree/branch/subdirectory)
-          if url.match(%r{/tree/[^/]+/(.+)$})
-            subdirectory_match = url.match(%r{/tree/[^/]+/(.+)$})
-            @subdirectory = subdirectory_match[1] if subdirectory_match
-            SourcecodeVerifier.logger.debug "Detected monorepo subdirectory: #{@subdirectory}"
-          end
           
           # Clean up paths and fragments, but preserve valid repo names
           repo = repo.split(/[#?]/).first           # Remove fragments/query params

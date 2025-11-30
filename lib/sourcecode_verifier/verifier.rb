@@ -76,13 +76,15 @@ module SourcecodeVerifier
     end
 
     def source_adapter
-      adapter_name = options[:adapter] || :github
-      
-      case adapter_name
-      when :github
-        Adapters::Github.new(gem_name, options)
-      else
-        raise Error, "Unknown adapter: #{adapter_name}"
+      @source_adapter ||= begin
+        adapter_name = options[:adapter] || :github
+        
+        case adapter_name
+        when :github
+          Adapters::Github.new(gem_name, options)
+        else
+          raise Error, "Unknown adapter: #{adapter_name}"
+        end
       end
     end
 

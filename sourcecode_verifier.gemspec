@@ -36,4 +36,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "rspec_junit_formatter", "~> 0.6"
   spec.add_development_dependency "webmock", "~> 3.0"
+  spec.add_development_dependency "vernier", "~> 1.0"
 end
