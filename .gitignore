@@ -34,7 +34,7 @@ Thumbs.db
 /.bundle/
 
 # Cache directories for gem and source downloads
-/cache/
+/tmp/
 
 # Reports directory for all output files
 /reports/

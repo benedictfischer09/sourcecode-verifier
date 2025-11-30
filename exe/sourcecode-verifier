@@ -55,7 +55,7 @@ OptionParser.new do |opts|
     options[:github_token] = token
   end
 
-  opts.on("-c", "--cache-dir DIR", "Cache directory (default: ./cache)") do |dir|
+  opts.on("-c", "--cache-dir DIR", "Cache directory (default: /tmp/sourcecode-verifier or ./tmp/cache)") do |dir|
     options[:cache_dir] = dir
   end
 

@@ -11,7 +11,7 @@ module SourcecodeVerifier
       @options = options
       @gem_path = options[:gem_path]
       @source_path = options[:source_path]
-      @cache_dir = options[:cache_dir] || './cache'
+      @cache_dir = options[:cache_dir] || determine_cache_directory
       setup_cache_directories
     end
 
@@ -158,6 +158,15 @@ module SourcecodeVerifier
     rescue => e
       SourcecodeVerifier.logger.warn "Failed to check gem version at #{gem_path}: #{e.message}"
       false
+    end
+
+    def determine_cache_directory
+      # Prefer /tmp if it exists and is writable, fallback to ./tmp/cache
+      if Dir.exist?('/tmp') && File.writable?('/tmp')
+        File.join('/tmp', 'sourcecode-verifier')
+      else
+        './tmp/cache'
+      end
     end
 
     def compare_directories(gem_dir, source_dir)
