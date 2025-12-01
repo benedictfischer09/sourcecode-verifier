@@ -21,7 +21,8 @@ module SourcecodeVerifier
 
     def generate
       # Create reports/html directory
-      reports_dir = File.join(Dir.pwd, 'reports', 'html')
+      base_reports_dir = SourcecodeVerifier::PathUtils.determine_reports_directory
+      reports_dir = File.join(base_reports_dir, 'html')
       FileUtils.mkdir_p(reports_dir)
 
       timestamp = Time.now.strftime('%Y%m%d_%H%M%S')

@@ -178,7 +178,8 @@ module SourcecodeVerifier
       end
       
       # Create reports/zips directory
-      reports_dir = File.join(Dir.pwd, 'reports', 'zips')
+      base_reports_dir = SourcecodeVerifier::PathUtils.determine_reports_directory
+      reports_dir = File.join(base_reports_dir, 'zips')
       FileUtils.mkdir_p(reports_dir)
       
       timestamp = Time.now.strftime('%Y%m%d_%H%M%S')

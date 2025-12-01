@@ -10,6 +10,7 @@ require_relative "sourcecode_verifier/report"
 require_relative "sourcecode_verifier/bundled_analyzer"
 require_relative "sourcecode_verifier/html_report_generator"
 require_relative "sourcecode_verifier/gemfile_parser"
+require_relative "sourcecode_verifier/path_utils"
 
 module SourcecodeVerifier
   class Error < StandardError; end

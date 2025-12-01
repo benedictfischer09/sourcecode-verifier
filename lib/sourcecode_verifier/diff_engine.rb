@@ -114,7 +114,8 @@ module SourcecodeVerifier
         end
         
         # Copy diff file to reports folder
-        reports_dir = File.join(Dir.pwd, 'reports', 'diffs')
+        base_reports_dir = SourcecodeVerifier::PathUtils.determine_reports_directory
+        reports_dir = File.join(base_reports_dir, 'diffs')
         FileUtils.mkdir_p(reports_dir)
         permanent_diff_file = File.join(reports_dir, "sourcecode_diff_#{Time.now.strftime('%Y%m%d_%H%M%S')}.diff")
         FileUtils.cp(@diff_file, permanent_diff_file)
