@@ -2,14 +2,24 @@ require 'fileutils'
 
 module SourcecodeVerifier
   class BundledAnalyzer
-    attr_reader :options, :results
+    attr_reader :options, :results, :gemfile_parser
 
     def initialize(options = {})
       @options = options
       @results = []
+      @gemfile_parser = nil
     end
 
     def analyze_all
+      # Initialize Gemfile parser for group information
+      begin
+        @gemfile_parser = GemfileParser.new
+        SourcecodeVerifier.logger.info "Parsed Gemfile groups: #{@gemfile_parser.all_groups}"
+      rescue => e
+        SourcecodeVerifier.logger.warn "Failed to parse Gemfile for group information: #{e.message}"
+        @gemfile_parser = nil
+      end
+
       gems = get_bundled_gems
       puts "Found #{Colorizer.highlight(gems.size)} gems to analyze..."
       SourcecodeVerifier.logger.info "Starting bundled analysis of #{gems.size} gems"
@@ -105,7 +115,8 @@ module SourcecodeVerifier
           modified_files: report.modified_files,
           summary: report.summary,
           duration: Time.now - start_time,
-          error: nil
+          error: nil,
+          groups: get_gem_groups(gem_name)
         }
       rescue => e
         error_message = e.message
@@ -128,7 +139,8 @@ module SourcecodeVerifier
           modified_files: [],
           summary: nil,
           duration: Time.now - start_time,
-          error: error_message
+          error: error_message,
+          groups: get_gem_groups(gem_name)
         }
       end
     end
@@ -189,6 +201,11 @@ module SourcecodeVerifier
       
       puts "ZIP report generated: #{zip_filename}"
       puts "Extract and open index.html in a browser to view the report."
+    end
+
+    def get_gem_groups(gem_name)
+      return [:default] unless @gemfile_parser
+      @gemfile_parser.groups_for_gem(gem_name)
     end
 
     def colorize_status_text(status)

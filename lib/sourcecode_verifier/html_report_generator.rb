@@ -1,6 +1,7 @@
 require 'erb'
 require 'cgi'
 require 'fileutils'
+require 'set'
 
 # Simple humanize method for status strings
 class String
@@ -127,17 +128,29 @@ module SourcecodeVerifier
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="card-title mb-0">Gem Analysis Results</h5>
                                     <div class="filter-buttons">
-                                        <button class="btn btn-sm btn-outline-secondary active" onclick="filterGems('all')">All</button>
-                                        <button class="btn btn-sm btn-outline-success" onclick="filterGems('matching')">Matching</button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="filterGems('differences')">Differences</button>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="filterGems('source_not_found')">No Source</button>
-                                        <button class="btn btn-sm btn-outline-muted" onclick="filterGems('errored')">Errored</button>
+                                        <div class="mb-2">
+                                            <strong>Status Filter:</strong>
+                                            <button class="btn btn-sm btn-outline-secondary active" onclick="filterByStatus('all')">All</button>
+                                            <button class="btn btn-sm btn-outline-success" onclick="filterByStatus('matching')">Matching</button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="filterByStatus('differences')">Differences</button>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="filterByStatus('source_not_found')">No Source</button>
+                                            <button class="btn btn-sm btn-outline-muted" onclick="filterByStatus('errored')">Errored</button>
+                                        </div>
+                                        <div>
+                                            <strong>Group Filter:</strong>
+                                            <button class="btn btn-sm btn-outline-primary active" onclick="filterByGroup('all')">All Groups</button>
+                                            <% all_groups.each do |group| %>
+                                                <button class="btn btn-sm btn-outline-info" onclick="filterByGroup('<%= group %>')">
+                                                    <%= group.to_s.capitalize %> (<%= gems_in_group(group).size %>)
+                                                </button>
+                                            <% end %>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div id="gem-results">
                                     <% results.sort_by { |r| r[:gem_name] }.each_with_index do |result, index| %>
-                                        <div class="card gem-card <%= result[:status] %>" data-status="<%= result[:status] %>">
+                                        <div class="card gem-card <%= result[:status] %>" data-status="<%= result[:status] %>" data-groups="<%= (result[:groups] || [:default]).join(',') %>">
                                             <div class="card-body">
                                                 <div class="row align-items-center">
                                                     <div class="col-md-6">
@@ -145,6 +158,9 @@ module SourcecodeVerifier
                                                             <i class="<%= status_icon(result[:status]) %> status-<%= result[:status] %>"></i>
                                                             <%= result[:gem_name] %>
                                                             <span class="badge bg-secondary"><%= result[:version] %></span>
+                                                            <% (result[:groups] || [:default]).each do |group| %>
+                                                                <span class="badge <%= group_badge_class(group) %>"><%= group %></span>
+                                                            <% end %>
                                                         </h6>
                                                         <small class="text-muted">
                                                             Status: <span class="status-<%= result[:status] %>"><%= result[:status].humanize %></span>
@@ -324,17 +340,40 @@ module SourcecodeVerifier
                     }
                 }
 
-                function filterGems(status) {
-                    const cards = document.querySelectorAll('.gem-card');
-                    const buttons = document.querySelectorAll('.filter-buttons .btn');
+                let currentStatusFilter = 'all';
+                let currentGroupFilter = 'all';
 
-                    // Update button states
-                    buttons.forEach(btn => btn.classList.remove('active'));
+                function filterByStatus(status) {
+                    currentStatusFilter = status;
+                    
+                    // Update button states - only for status buttons
+                    const statusButtons = document.querySelectorAll('[onclick^="filterByStatus"]');
+                    statusButtons.forEach(btn => btn.classList.remove('active'));
                     event.target.classList.add('active');
 
-                    // Show/hide cards
+                    applyFilters();
+                }
+
+                function filterByGroup(group) {
+                    currentGroupFilter = group;
+                    
+                    // Update button states - only for group buttons
+                    const groupButtons = document.querySelectorAll('[onclick^="filterByGroup"]');
+                    groupButtons.forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+
+                    applyFilters();
+                }
+
+                function applyFilters() {
+                    const cards = document.querySelectorAll('.gem-card');
+
                     cards.forEach(card => {
-                        if (status === 'all' || card.dataset.status === status) {
+                        let statusMatch = currentStatusFilter === 'all' || card.dataset.status === currentStatusFilter;
+                        let groupMatch = currentGroupFilter === 'all' || 
+                                        card.dataset.groups.split(',').includes(currentGroupFilter);
+
+                        if (statusMatch && groupMatch) {
                             card.style.display = 'block';
                         } else {
                             card.style.display = 'none';
@@ -384,6 +423,33 @@ module SourcecodeVerifier
       (result[:gem_only_files] && !result[:gem_only_files].empty?) ||
       (result[:source_only_files] && !result[:source_only_files].empty?) ||
       (result[:modified_files] && !result[:modified_files].empty?)
+    end
+
+    def all_groups
+      groups = Set.new
+      results.each do |result|
+        groups.merge(result[:groups] || [:default])
+      end
+      groups.to_a.sort
+    end
+
+    def gems_in_group(group)
+      results.select { |result| (result[:groups] || [:default]).include?(group) }
+    end
+
+    def group_badge_class(group)
+      case group.to_s
+      when 'default'
+        'bg-primary'
+      when 'development'
+        'bg-info'
+      when 'test'
+        'bg-success'
+      when 'production'
+        'bg-warning text-dark'
+      else
+        'bg-secondary'
+      end
     end
   end
 end
