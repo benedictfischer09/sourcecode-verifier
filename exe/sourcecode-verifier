@@ -36,7 +36,6 @@ def show_usage
 end
 
 options = {
-  cache_dir: './cache',
   verbose: false,
   bundled: false,
   html: false,
@@ -125,22 +124,22 @@ else
 
   begin
     puts "#{SourcecodeVerifier::Colorizer.info('Verifying')} #{gem_name} version #{version}..."
-    
+
     report = SourcecodeVerifier.verify(gem_name, version, options)
-    
+
     puts colorize_report_summary(report)
     puts report.to_s
-    
+
     if options[:verbose]
       puts "\nDetailed Information:"
       puts "Diff file: #{report.diff_file_path}"
       puts "Identical: #{report.identical?}"
       puts "Total differences: #{report.to_hash[:statistics][:total_differences]}"
     end
-    
+
     # Exit with non-zero code if differences found
     exit(report.identical? ? 0 : 1)
-    
+
   rescue SourcecodeVerifier::Error => e
     puts "Error: #{e.message}"
     exit 2
