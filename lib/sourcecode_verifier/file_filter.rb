@@ -58,6 +58,21 @@ module SourcecodeVerifier
       'log/',
       'logs/',
       
+      # Compiled extensions and build files
+      'Makefile',
+      '*/Makefile',
+      '**/Makefile',
+      '*.bundle',
+      '*.so',
+      '*.dylib',
+      '*.dll',
+      '*.o',
+      '*.a',
+      '*/extconf.rb',
+      '**/extconf.rb',
+      'mkmf.log',
+      '*.gem',
+      
       # IDE files
       '.vscode/',
       '.idea/',
