@@ -3,8 +3,8 @@ require_relative "lib/sourcecode_verifier/version"
 Gem::Specification.new do |spec|
   spec.name = "sourcecode_verifier"
   spec.version = SourcecodeVerifier::VERSION
-  spec.authors = ["Your Name"]
-  spec.email = ["your.email@example.com"]
+  spec.authors = ["Ben Fischer"]
+  spec.email = ["ben.fischer.810@gmail.com"]
 
   spec.summary = "Verify source code integrity by comparing published gems with their source repositories"
   spec.description = "A Ruby gem that downloads published gems from RubyGems.org and compares them with source code from repositories like GitHub to verify integrity and detect differences."
