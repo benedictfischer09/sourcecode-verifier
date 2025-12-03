@@ -28,8 +28,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "httparty", "~> 0.21"
   spec.add_dependency "octokit", "~> 5.0"
   spec.add_dependency "rubyzip", "~> 2.3"
-  spec.add_dependency "tmpdir"
-  spec.add_dependency "base64"
 
   spec.add_development_dependency "bundler", "~> 2.0"
   spec.add_development_dependency "rake", "~> 13.0"
