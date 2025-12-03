@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Verify source code integrity by comparing published gems with their source repositories"
   spec.description = "A Ruby gem that downloads published gems from RubyGems.org and compares them with source code from repositories like GitHub to verify integrity and detect differences."
-  spec.homepage = "https://github.com/yourusername/sourcecode-verifier"
+  spec.homepage = "https://github.com/benedictfischer09/sourcecode-verifier"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 
@@ -28,6 +28,10 @@ Gem::Specification.new do |spec|
   spec.add_dependency "httparty", "~> 0.21"
   spec.add_dependency "octokit", "~> 5.0"
   spec.add_dependency "rubyzip", "~> 2.3"
+  
+  # Standard library gems that become separate gems in Ruby 3.4+
+  spec.add_dependency "base64", "~> 0.1", ">= 0.1.0"
+  spec.add_dependency "tmpdir", "~> 0.1", ">= 0.1.0"
 
   spec.add_development_dependency "bundler", "~> 2.0"
   spec.add_development_dependency "rake", "~> 13.0"
